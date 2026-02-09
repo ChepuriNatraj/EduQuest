@@ -189,9 +189,49 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
+            {/* Three Logo Display */}
+            <div className="logo-trio mb-md" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--spacing-sm)',
+                marginBottom: 'var(--spacing-md)',
+                flexWrap: 'wrap'
+            }}>
+                <img
+                    src="/assets/width_193.png"
+                    alt="EduMoon"
+                    style={{
+                        maxWidth: '70px',
+                        height: 'auto',
+                        filter: 'sepia(0.3) brightness(0.9)',
+                        opacity: 0.85
+                    }}
+                />
+                <img
+                    src="/assets/width_800.png"
+                    alt="EduMoon Student Clubs"
+                    style={{
+                        maxWidth: '180px',
+                        height: 'auto',
+                        filter: 'sepia(0.3) brightness(0.9)'
+                    }}
+                />
+                <img
+                    src="/assets/width_500.png"
+                    alt="EduMoon"
+                    style={{
+                        maxWidth: '110px',
+                        height: 'auto',
+                        filter: 'sepia(0.3) brightness(0.9)',
+                        opacity: 0.85
+                    }}
+                />
+            </div>
+
             <div className="header mb-xl">
-                <h1 className="gradient-text mb-sm">🎮 Game Master</h1>
-                <p className="text-muted mb-md">Manage teams, riddles, and QR codes for the treasure hunt</p>
+                <h1 className="gradient-text mb-sm text-center">🎮 Game Master</h1>
+                <p className="text-muted mb-md text-center">Manage teams, riddles, and QR codes for the treasure hunt</p>
 
                 <div className="tabs flex gap-sm">
                     <button

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { validateTeamScan, getTeamByCode, Location, db } from '../utils/firebase-helpers';
 import { doc, getDoc } from 'firebase/firestore';
-import logo from '../../assets/width_500.png';
 
 const ScanPage: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -122,17 +121,53 @@ const ScanPage: React.FC = () => {
     return (
         <div className="container-sm" style={{ minHeight: '100vh', paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
             <div className={`card fade-in ${shake ? 'shake-anim' : ''}`} style={{ maxWidth: '600px', margin: '0 auto' }}>
-                {/* Header */}
-                <div className="flex flex-col items-center mb-lg">
-                    <img src={logo} alt="EduMoon" className="logo mb-md" />
-                    <h1 className="gradient-text text-center mb-sm">Treasure Hunt</h1>
-
-                    {locationId && (
-                        <div className="badge badge-warning">
-                            📍 Location: {locationId.toUpperCase()}
-                        </div>
-                    )}
+                {/* Three Logo Display */}
+                <div className="logo-trio mb-lg" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--spacing-sm)',
+                    marginBottom: 'var(--spacing-md)',
+                    flexWrap: 'wrap'
+                }}>
+                    <img
+                        src="/assets/width_193.png"
+                        alt="EduMoon"
+                        style={{
+                            maxWidth: '80px',
+                            height: 'auto',
+                            filter: 'sepia(0.3) brightness(0.9)',
+                            opacity: 0.85
+                        }}
+                    />
+                    <img
+                        src="/assets/width_800.png"
+                        alt="EduMoon Student Clubs"
+                        style={{
+                            maxWidth: '200px',
+                            height: 'auto',
+                            filter: 'sepia(0.3) brightness(0.9)'
+                        }}
+                    />
+                    <img
+                        src="/assets/width_500.png"
+                        alt="EduMoon"
+                        style={{
+                            maxWidth: '120px',
+                            height: 'auto',
+                            filter: 'sepia(0.3) brightness(0.9)',
+                            opacity: 0.85
+                        }}
+                    />
                 </div>
+
+                <h1 className="gradient-text text-center mb-sm">Treasure Hunt</h1>
+
+                {locationId && (
+                    <div className="badge badge-warning" style={{ display: 'inline-block', marginBottom: 'var(--spacing-md)' }}>
+                        📍 Location: {locationId.toUpperCase()}
+                    </div>
+                )}
 
                 {/* Main Content */}
                 {!result && locationId && (

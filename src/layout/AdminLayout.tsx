@@ -25,7 +25,7 @@ const AdminLayout: React.FC = () => {
         <div className="admin-layout">
             <div className="admin-header" style={{
                 background: 'linear-gradient(135deg, var(--brown-dark), var(--brown-medium))',
-                padding: 'var(--spacing-md) var(--spacing-lg)',
+                padding: 'var(--spacing-sm) var(--spacing-lg)',
                 marginBottom: 'var(--spacing-lg)',
                 boxShadow: 'var(--shadow-md)',
                 position: 'sticky',
@@ -34,11 +34,35 @@ const AdminLayout: React.FC = () => {
             }}>
                 <div className="container">
                     <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-md">
-                            <span style={{ fontSize: '1.5rem' }}>🎮</span>
-                            <h3 style={{ color: 'var(--gold-bright)', margin: 0, fontFamily: "'Cinzel', serif" }}>
-                                Admin Panel
-                            </h3>
+                        {/* Mini Logo Trio in Header */}
+                        <div className="flex items-center gap-sm">
+                            <img
+                                src="/assets/width_193.png"
+                                alt="EduMoon"
+                                style={{
+                                    maxWidth: '40px',
+                                    height: 'auto',
+                                    filter: 'brightness(1.2)'
+                                }}
+                            />
+                            <img
+                                src="/assets/width_800.png"
+                                alt="Admin"
+                                style={{
+                                    maxWidth: '100px',
+                                    height: 'auto',
+                                    filter: 'brightness(1.2)'
+                                }}
+                            />
+                            <img
+                                src="/assets/width_500.png"
+                                alt="EduMoon"
+                                style={{
+                                    maxWidth: '60px',
+                                    height: 'auto',
+                                    filter: 'brightness(1.2)'
+                                }}
+                            />
                         </div>
                         <button
                             onClick={handleLogout}

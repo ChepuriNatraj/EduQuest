@@ -20,13 +20,46 @@ function App() {
 function HomePage() {
     return (
         <div className="container-sm" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
-            <div className="card fade-in" style={{ textAlign: 'center', maxWidth: '500px', width: '100%' }}>
-                <img
-                    src="/assets/width_500.png"
-                    alt="EduMoon Student Clubs"
-                    className="logo"
-                    style={{ margin: '0 auto var(--spacing-md)' }}
-                />
+            <div className="card fade-in" style={{ textAlign: 'center', maxWidth: '600px', width: '100%' }}>
+                {/* Three Logo Display */}
+                <div className="logo-trio mb-lg" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--spacing-md)',
+                    marginBottom: 'var(--spacing-lg)',
+                    flexWrap: 'wrap'
+                }}>
+                    <img
+                        src="/assets/width_193.png"
+                        alt="EduMoon"
+                        style={{
+                            maxWidth: '120px',
+                            height: 'auto',
+                            filter: 'sepia(0.3) brightness(0.9)',
+                            opacity: 0.85
+                        }}
+                    />
+                    <img
+                        src="/assets/width_800.png"
+                        alt="EduMoon Student Clubs"
+                        style={{
+                            maxWidth: '300px',
+                            height: 'auto',
+                            filter: 'sepia(0.3) brightness(0.9)'
+                        }}
+                    />
+                    <img
+                        src="/assets/width_500.png"
+                        alt="EduMoon"
+                        style={{
+                            maxWidth: '180px',
+                            height: 'auto',
+                            filter: 'sepia(0.3) brightness(0.9)',
+                            opacity: 0.85
+                        }}
+                    />
+                </div>
 
                 <h1 className="gradient-text mb-sm">EduMoon Treasure Hunt</h1>
 
