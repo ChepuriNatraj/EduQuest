@@ -1,176 +1,263 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Location,
     Team,
-    subscribeToLocations,
+    RouteItem,
     subscribeToTeams,
-    updateLocation,
-    addLocation,
-    formatTimestamp,
-    getElapsedTime
+    initializeTeams,
+    updateTeamRoute
 } from '../utils/firebase-helpers';
 import QRGenerator from '../components/QRGenerator';
 
 const AdminDashboard: React.FC = () => {
-    const [locations, setLocations] = useState<Location[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
-    const [activeTab, setActiveTab] = useState<'tracker' | 'locations' | 'qr'>('tracker');
-    const [editingLoc, setEditingLoc] = useState<string | null>(null);
-    const [editForm, setEditForm] = useState<Partial<Location>>({});
+    const [activeTab, setActiveTab] = useState<'teams' | 'qr'>('teams');
+    const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+    const [editRoute, setEditRoute] = useState<RouteItem[]>([]);
+    const [saving, setSaving] = useState(false);
 
-    // Real-time subscriptions
     useEffect(() => {
-        const unsubLoc = subscribeToLocations(setLocations);
         const unsubTeams = subscribeToTeams(setTeams);
-        return () => {
-            unsubLoc();
-            unsubTeams();
-        };
+        return () => unsubTeams();
     }, []);
 
-    // Handlers
-    const handleEditClick = (loc: Location) => {
-        setEditingLoc(loc.id);
-        setEditForm(loc);
-    };
-
-    const handleSaveLoc = async () => {
-        if (editingLoc && editForm) {
-            await updateLocation(editingLoc, editForm);
-            setEditingLoc(null);
-            setEditForm({});
+    const handleInitTeams = async () => {
+        if (confirm("This will create/reset 15 Teams (TEAM001 - TEAM015). Continue?")) {
+            await initializeTeams(15);
         }
     };
 
-    const handleAddNewLoc = async () => {
-        const newId = `LOC_${locations.length + 1}`;
-        await addLocation({
-            id: newId,
-            name: `New Location ${locations.length + 1}`,
-            clue: "Enter clue here...",
-            sequence: locations.length + 1
-        });
+    const openEditModal = (team: Team) => {
+        setEditingTeam(team);
+        const route = [...team.route];
+        while (route.length < 4) {
+            route.push({ round: route.length + 1, locationId: '', riddle: '' });
+        }
+        setEditRoute(route);
     };
 
-    // Render Components
-    const renderTracker = () => (
-        <div className="grid-tracker">
-            {teams.map(team => (
-                <div key={team.teamCode} className="card team-card">
-                    <div className="team-header">
-                        <h3>{team.teamName} <span className="text-muted">({team.teamCode})</span></h3>
-                        <span className={`badge ${team.currentRound > 4 ? 'badge-success' : 'badge-warning'}`}>
-                            {team.currentRound > 4 ? 'COMPLETED' : `Round ${team.currentRound}`}
-                        </span>
-                    </div>
+    const handleSaveRoute = async () => {
+        if (editingTeam) {
+            setSaving(true);
+            try {
+                await updateTeamRoute(editingTeam.teamCode, editRoute);
+                setEditingTeam(null);
+            } finally {
+                setSaving(false);
+            }
+        }
+    };
 
-                    <div className="progress-bar">
-                        <div
-                            className="progress-fill"
-                            style={{ width: `${Math.min((team.currentRound / 4) * 100, 100)}%` }}
-                        ></div>
-                    </div>
+    const updateRouteItem = (index: number, field: keyof RouteItem, value: any) => {
+        const newRoute = [...editRoute];
+        newRoute[index] = { ...newRoute[index], [field]: value };
+        setEditRoute(newRoute);
+    };
 
-                    <p className="text-sm">
-                        ⏱️ Time: {getElapsedTime(team.startTime)} <br />
-                        📍 Last Scan: {team.scans.length > 0
-                            ? `${team.scans[team.scans.length - 1].location} at ${formatTimestamp(team.scans[team.scans.length - 1].timestamp)}`
-                            : 'Not started'}
-                    </p>
+    const renderTeams = () => (
+        <div className="teams-view">
+            <div className="flex justify-between items-center mb-lg">
+                <div>
+                    <h2 className="mb-xs">Team Management</h2>
+                    <p className="text-sm text-muted">Configure riddles and routes for each team</p>
                 </div>
-            ))}
-            {teams.length === 0 && <p className="text-center">No teams registered yet.</p>}
+                <button onClick={handleInitTeams} className="btn btn-primary">
+                    🚀 Initialize 15 Teams
+                </button>
+            </div>
+
+            {teams.length === 0 ? (
+                <div className="card text-center p-lg">
+                    <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📋</div>
+                    <h3 className="mb-sm">No Teams Found</h3>
+                    <p className="text-muted mb-md">Click "Initialize 15 Teams" to get started</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-md">
+                    {teams.map(team => (
+                        <div key={team.teamCode} className="card" style={{ padding: 'var(--spacing-md)' }}>
+                            <div className="flex justify-between items-start mb-sm">
+                                <div>
+                                    <h4 className="mb-xs">{team.teamName}</h4>
+                                    <p className="text-xs text-muted">{team.teamCode}</p>
+                                </div>
+                                <span className={`badge ${team.currentRound >= 4 ? 'badge-success' : 'badge-warning'}`}>
+                                    {team.currentRound >= 4 ? '✓ DONE' : `Round ${team.currentRound + 1}`}
+                                </span>
+                            </div>
+
+                            <div className="progress-bar mb-sm">
+                                <div
+                                    className="progress-fill"
+                                    style={{ width: `${Math.min((team.currentRound / 4) * 100, 100)}%` }}
+                                />
+                            </div>
+
+                            <p className="text-xs text-muted mb-sm">
+                                Progress: {team.currentRound} / 4 locations
+                            </p>
+
+                            <button
+                                onClick={() => openEditModal(team)}
+                                className="btn btn-secondary btn-sm w-full"
+                            >
+                                ✏️ Edit Riddles
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 
-    const renderLocations = () => (
-        <div className="loc-list">
-            <button onClick={handleAddNewLoc} className="btn btn-primary mb-lg">
-                + Add New Location
-            </button>
+    const renderEditModal = () => {
+        if (!editingTeam) return null;
 
-            {locations.map(loc => (
-                <div key={loc.id} className="card mb-lg">
-                    {editingLoc === loc.id ? (
-                        <div className="edit-form">
-                            <h3 className="mb-md">Editing {loc.id}</h3>
-                            <div className="form-group">
-                                <label>Name</label>
-                                <input
-                                    className="input"
-                                    value={editForm.name || ''}
-                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                />
+        return (
+            <div className="modal-overlay" onClick={() => !saving && setEditingTeam(null)}>
+                <div className="modal-content card fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header mb-lg">
+                        <h2 className="mb-xs">Edit {editingTeam.teamName}</h2>
+                        <p className="text-sm text-muted">{editingTeam.teamCode} - Configure all 4 rounds</p>
+                    </div>
+
+                    <div className="modal-body" style={{
+                        maxHeight: '60vh',
+                        overflowY: 'auto',
+                        paddingRight: 'var(--spacing-xs)'
+                    }}>
+                        {editRoute.map((item, idx) => (
+                            <div
+                                key={idx}
+                                className="riddle-group mb-lg"
+                                style={{
+                                    paddingBottom: 'var(--spacing-md)',
+                                    borderBottom: idx < editRoute.length - 1 ? '2px solid var(--brown-light)' : 'none'
+                                }}
+                            >
+                                <h4 className="mb-sm" style={{ color: 'var(--gold-dark)' }}>
+                                    🔹 Round {idx + 1}
+                                </h4>
+
+                                <div className="form-group">
+                                    <label htmlFor={`loc-${idx}`}>Target Location ID</label>
+                                    <input
+                                        id={`loc-${idx}`}
+                                        className="input"
+                                        value={item.locationId}
+                                        onChange={e => updateRouteItem(idx, 'locationId', e.target.value.toUpperCase())}
+                                        placeholder="e.g. LOC_1"
+                                        disabled={saving}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor={`riddle-${idx}`}>Riddle / Clue</label>
+                                    <textarea
+                                        id={`riddle-${idx}`}
+                                        className="input"
+                                        value={item.riddle}
+                                        onChange={e => updateRouteItem(idx, 'riddle', e.target.value)}
+                                        placeholder="Enter the riddle students see BEFORE finding this location..."
+                                        rows={3}
+                                        disabled={saving}
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Clue (Riddle)</label>
-                                <textarea
-                                    className="input"
-                                    style={{ minHeight: '100px' }}
-                                    value={editForm.clue || ''}
-                                    onChange={e => setEditForm({ ...editForm, clue: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex gap-sm">
-                                <button onClick={handleSaveLoc} className="btn btn-success">Save</button>
-                                <button onClick={() => setEditingLoc(null)} className="btn btn-secondary">Cancel</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="loc-display">
-                            <div className="flex justify-between items-center mb-sm">
-                                <h3>{loc.name} <span className="text-muted">({loc.id})</span></h3>
-                                <button onClick={() => handleEditClick(loc)} className="btn btn-secondary btn-sm">
-                                    ✏️ Edit
-                                </button>
-                            </div>
-                            <p className="clue-text">"{loc.clue}"</p>
-                        </div>
-                    )}
+                        ))}
+                    </div>
+
+                    <div className="modal-footer flex gap-md justify-end mt-lg">
+                        <button
+                            onClick={() => setEditingTeam(null)}
+                            className="btn btn-secondary"
+                            disabled={saving}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSaveRoute}
+                            className="btn btn-primary"
+                            disabled={saving}
+                        >
+                            {saving ? '💾 Saving...' : '✓ Save Changes'}
+                        </button>
+                    </div>
                 </div>
-            ))}
-        </div>
-    );
+            </div>
+        );
+    };
 
     return (
-        <div className="container">
-            <div className="admin-header mb-xl">
-                <h1 className="gradient-text">Admin Command Center</h1>
-                <div className="nav-tabs">
+        <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
+            <div className="header mb-xl">
+                <h1 className="gradient-text mb-sm">🎮 Game Master</h1>
+                <p className="text-muted mb-md">Manage teams, riddles, and QR codes for the treasure hunt</p>
+
+                <div className="tabs flex gap-sm">
                     <button
-                        className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`}
-                        onClick={() => setActiveTab('tracker')}
+                        className={`btn ${activeTab === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setActiveTab('teams')}
                     >
-                        👥 Team Tracker
-                    </button>
-                    <button
-                        className={`btn ${activeTab === 'locations' ? 'btn-primary' : 'btn-secondary'}`}
-                        onClick={() => setActiveTab('locations')}
-                    >
-                        📍 Locations & Clues
+                        👥 Teams & Riddles
                     </button>
                     <button
                         className={`btn ${activeTab === 'qr' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('qr')}
                     >
-                        🖨️ QR Generator
+                        📱 Generate QR
                     </button>
                 </div>
             </div>
 
-            <div className="admin-content">
-                {activeTab === 'tracker' && renderTracker()}
-                {activeTab === 'locations' && renderLocations()}
-                {activeTab === 'qr' && <QRGenerator />}
-            </div>
+            {activeTab === 'teams' ? renderTeams() : <QRGenerator />}
+            {renderEditModal()}
 
             <style>{`
-                .nav-tabs { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
-                .grid-tracker { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
-                .team-card { border-left: 4px solid var(--gold-medium); }
-                .text-sm { font-size: 0.9rem; color: var(--brown-text); opacity: 0.8; }
-                .text-muted { color: var(--brown-light); font-size: 0.8em; }
-                .clue-text { font-style: italic; background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 4px; }
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: var(--spacing-md);
+                }
+                
+                .modal-content {
+                    width: 100%;
+                    max-width: 700px;
+                    max-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    background: linear-gradient(135deg, var(--parchment-lightest) 0%, var(--parchment-light) 100%);
+                }
+
+                .modal-body {
+                    flex: 1;
+                    overflow-y: auto;
+                }
+
+                .modal-body::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .modal-body::-webkit-scrollbar-track {
+                    background: rgba(0, 0, 0, 0.05);
+                    border-radius: 4px;
+                }
+
+                .modal-body::-webkit-scrollbar-thumb {
+                    background: var(--brown-medium);
+                    border-radius: 4px;
+                }
+
+                .modal-body::-webkit-scrollbar-thumb:hover {
+                    background: var(--brown-dark);
+                }
             `}</style>
         </div>
     );

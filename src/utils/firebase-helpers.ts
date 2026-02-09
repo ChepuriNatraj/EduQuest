@@ -32,8 +32,7 @@ export interface Team {
 export interface RouteItem {
     round: number;
     locationId: string;
-    riddle: string; // This is the FALLBACK riddle logic. 
-    // In dynamic mode, we should fetch from Location.clue
+    riddle: string;
 }
 
 export interface ScanRecord {
@@ -108,24 +107,37 @@ export async function validateTeamScan(
             };
         }
 
-        // Get the expected location ID for current round
-        const expectedRouteItem = team.route[team.currentRound - 1];
-        const expectedLocationId = expectedRouteItem.locationId;
+        const targetRoundIndex = team.currentRound; // 0 for Round 1
+        // Safety check
+        if (targetRoundIndex < 0) {
+            return { success: false, message: "Invalid round state.", team };
+        }
 
-        // Verify the scanned location exists
-        const locationDoc = await getDoc(doc(db, 'locations', scannedLocation.toUpperCase()));
-
-        // Dynamic Check:
-        // 1. Is it the correct location?
-        if (scannedLocation.toUpperCase() !== expectedLocationId.toUpperCase()) {
+        // If route is missing or empty
+        if (!team.route || targetRoundIndex >= team.route.length) {
+            // Fallback: If no route, maybe allow any valid location? No, strict.
+            // But if we want to allow testing, maybe we check if Location exists.
+            // Sticking to strict route for now.
             return {
                 success: false,
-                message: `This is not your next location! You should be looking for location ${expectedLocationId} (or its clue).`,
+                message: "System Error: No route defined for this round. Contact Admin.",
                 team
             };
         }
 
-        // 2. Correct Location Found! Update Team Progress
+        const expectedRouteItem = team.route[targetRoundIndex];
+        const expectedLocationId = expectedRouteItem.locationId;
+
+        // Dynamic Check:
+        if (scannedLocation.toUpperCase() !== expectedLocationId.toUpperCase()) {
+            return {
+                success: false,
+                message: `This is not your next location! Keep looking!`,
+                team
+            };
+        }
+
+        // Correct Location Found! Update Team Progress
         const teamsRef = collection(db, 'teams');
         const q = query(teamsRef, where('teamCode', '==', teamCode.toUpperCase()));
         const querySnapshot = await getDocs(q);
@@ -134,7 +146,7 @@ export async function validateTeamScan(
             const teamDoc = querySnapshot.docs[0];
             const newRound = team.currentRound + 1;
             const newScan: ScanRecord = {
-                round: team.currentRound,
+                round: newRound,
                 location: scannedLocation.toUpperCase(),
                 timestamp: new Date().toISOString()
             };
@@ -145,41 +157,46 @@ export async function validateTeamScan(
             };
 
             // If this was the final location
-            if (newRound > 4) {
+            if (newRound >= 4) { // Assuming 4 rounds
                 updates.completedAt = new Date().toISOString();
             }
 
             await updateDoc(doc(db, 'teams', teamDoc.id), updates);
 
-            // Fetch Next Clue if applicable
-            let nextRiddle = "";
+            // Fetch Next Clue
+            let nextRiddle = "Clue not found.";
+            const isFinished = newRound >= 4; // Or team.route.length? checks 4 for now.
 
-            if (newRound <= 4) {
-                // Get next location ID
-                const nextLocId = team.route[newRound - 1].locationId;
-                // Fetch dynamic clue from Locations collection
-                const nextLocDoc = await getDoc(doc(db, 'locations', nextLocId));
-                if (nextLocDoc.exists()) {
-                    nextRiddle = (nextLocDoc.data() as Location).clue;
-                } else {
-                    // Fallback to static route riddle
-                    nextRiddle = team.route[newRound - 1].riddle;
+            if (!isFinished) {
+                // Get riddle for NEXT round (which is at index 'newRound')
+                if (newRound < team.route.length) {
+                    const nextRouteItem = team.route[newRound];
+
+                    // Priority 1: Team specific riddle
+                    if (nextRouteItem && nextRouteItem.riddle) {
+                        nextRiddle = nextRouteItem.riddle;
+                    }
+
+                    // Priority 2: Location clue (fallback)
+                    if ((!nextRiddle || nextRiddle.startsWith("Default Riddle")) && nextRouteItem.locationId) {
+                        const nextLocDoc = await getDoc(doc(db, 'locations', nextRouteItem.locationId));
+                        if (nextLocDoc.exists()) {
+                            const locData = nextLocDoc.data() as Location;
+                            if (locData.clue) nextRiddle = locData.clue;
+                        }
+                    }
                 }
-
-                return {
-                    success: true,
-                    message: `Correct! You've completed round ${team.currentRound}!`,
-                    nextRiddle: nextRiddle,
-                    team
-                };
             } else {
-                return {
-                    success: true,
-                    message: 'Congratulations! You have completed the treasure hunt!',
-                    isCompleted: true,
-                    team
-                };
+                nextRiddle = "Congratulations! You completed the hunt!";
             }
+
+            return {
+                success: true,
+                message: isFinished ? 'Congratulations! You finished!' : `Correct! Proceed to Round ${newRound + 1}`,
+                nextRiddle: nextRiddle,
+                team,
+                isCompleted: isFinished
+            };
         }
 
         return {
@@ -210,9 +227,42 @@ export async function getAllTeams(): Promise<Team[]> {
     }
 }
 
-/**
- * Subscribe to real-time team updates (for admin dashboard)
- */
+
+// ==========================================
+// ADMIN: TEAM MANAGEMENT
+// ==========================================
+
+export async function initializeTeams(count: number = 15) {
+    const teamsRef = collection(db, 'teams');
+
+    for (let i = 1; i <= count; i++) {
+        const teamCode = `TEAM${i.toString().padStart(3, '0')}`; // TEAM001
+        const docRef = doc(teamsRef, teamCode);
+
+        // checking existence would be good, but for "Init", we might want to ensure they exist via setDoc with merge
+        await setDoc(docRef, {
+            teamCode: teamCode,
+            teamName: `Team ${i}`,
+            currentRound: 0,
+            route: [
+                { round: 1, locationId: `LOC_1`, riddle: "Default Riddle 1" },
+                { round: 2, locationId: `LOC_2`, riddle: "Default Riddle 2" },
+                { round: 3, locationId: `LOC_3`, riddle: "Default Riddle 3" },
+                { round: 4, locationId: `LOC_4`, riddle: "Default Riddle 4" }
+            ],
+            scans: [],
+            startTime: new Date().toISOString(),
+            completedAt: null
+        }, { merge: true });
+    }
+}
+
+export async function updateTeamRoute(teamCode: string, routeData: RouteItem[]) {
+    await updateDoc(doc(db, 'teams', teamCode), {
+        route: routeData
+    });
+}
+
 export function subscribeToTeams(callback: (teams: Team[]) => void): () => void {
     const teamsRef = collection(db, 'teams');
     return onSnapshot(teamsRef, (snapshot) => {
@@ -222,7 +272,7 @@ export function subscribeToTeams(callback: (teams: Team[]) => void): () => void 
 }
 
 // ==========================================
-// LOCATION MANAGEMENT (Admin)
+// LOCATION MANAGEMENT (Keep for Admin Ref or Fallback)
 // ==========================================
 
 export async function getAllLocations(): Promise<Location[]> {
