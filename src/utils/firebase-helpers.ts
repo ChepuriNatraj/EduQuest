@@ -8,8 +8,7 @@ import {
     setDoc,
     updateDoc,
     arrayUnion,
-    onSnapshot,
-    Timestamp
+    onSnapshot
 } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 
