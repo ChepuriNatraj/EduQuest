@@ -421,14 +421,15 @@ export async function initializeTeams(count: number = 15) {
             teamName: `Team ${i}`,
             currentRound: 0,
             route: [
-                { round: 1, locationId: `LOC_1`, riddle: "Default Riddle 1" },
-                { round: 2, locationId: `LOC_2`, riddle: "Default Riddle 2" },
-                { round: 3, locationId: `LOC_3`, riddle: "Default Riddle 3" },
-                { round: 4, locationId: `LOC_4`, riddle: "Default Riddle 4" }
+                { round: 1, locationId: `LOC_1`, riddle: "Your first clue will appear here..." },
+                { round: 2, locationId: `LOC_2`, riddle: "Your second clue will appear here..." },
+                { round: 3, locationId: `LOC_3`, riddle: "Your third clue will appear here..." },
+                { round: 4, locationId: `LOC_4`, riddle: "Final clue - find the treasure!" }
             ],
             scans: [],
             startTime: new Date().toISOString(),
-            completedAt: null
+            completedAt: null,
+            isRegistered: false
         }, { merge: true });
     }
 }

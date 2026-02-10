@@ -4,9 +4,12 @@ import {
     RouteItem,
     subscribeToTeams,
     initializeTeams,
-    updateTeamRoute
+    updateTeamRoute,
+    db
 } from '../utils/firebase-helpers';
+import { doc, updateDoc } from 'firebase/firestore';
 import QRGenerator from '../components/QRGenerator';
+import QRCode from 'react-qr-code';
 
 const AdminDashboard: React.FC = () => {
     const [teams, setTeams] = useState<Team[]>([]);
@@ -96,21 +99,32 @@ const AdminDashboard: React.FC = () => {
         document.body.removeChild(link);
     };
 
+    const [editTeamName, setEditTeamName] = useState('');
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
+
     const openEditModal = (team: Team) => {
         setEditingTeam(team);
+        setEditTeamName(team.teamName);
         const route = [...team.route];
         while (route.length < 4) {
             route.push({ round: route.length + 1, locationId: '', riddle: '' });
         }
         setEditRoute(route);
+        setQrPreview(null);
     };
 
     const handleSaveRoute = async () => {
         if (editingTeam) {
             setSaving(true);
             try {
+                // Update both route and team name
                 await updateTeamRoute(editingTeam.teamCode, editRoute);
+                if (editTeamName !== editingTeam.teamName) {
+                    const teamDocRef = doc(db, 'teams', editingTeam.teamCode);
+                    await updateDoc(teamDocRef, { teamName: editTeamName });
+                }
                 setEditingTeam(null);
+                setQrPreview(null);
             } finally {
                 setSaving(false);
             }
@@ -148,37 +162,48 @@ const AdminDashboard: React.FC = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-md">
-                    {teams.map(team => (
-                        <div key={team.teamCode} className="card" style={{ padding: 'var(--spacing-md)' }}>
-                            <div className="flex justify-between items-start mb-sm">
-                                <div>
-                                    <h4 className="mb-xs">{team.teamName}</h4>
-                                    <p className="text-xs text-muted">{team.teamCode}</p>
+                    {teams.map(team => {
+                        const completedRounds = team.currentRound;
+                        const isComplete = completedRounds >= 4;
+                        const progressPercent = Math.min((completedRounds / 4) * 100, 100);
+                        
+                        return (
+                            <div key={team.teamCode} className="card" style={{ padding: 'var(--spacing-md)' }}>
+                                <div className="flex justify-between items-start mb-sm">
+                                    <div>
+                                        <h4 className="mb-xs">{team.teamName}</h4>
+                                        <p className="text-xs text-muted">{team.teamCode}</p>
+                                        {team.secretCode && (
+                                            <p className="text-xs" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>
+                                                🔐 {team.secretCode}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <span className={`badge ${isComplete ? 'badge-success' : 'badge-warning'}`}>
+                                        {isComplete ? '✓ DONE' : `${completedRounds}/4`}
+                                    </span>
                                 </div>
-                                <span className={`badge ${team.currentRound >= 4 ? 'badge-success' : 'badge-warning'}`}>
-                                    {team.currentRound >= 4 ? '✓ DONE' : `Round ${team.currentRound + 1}`}
-                                </span>
+
+                                <div className="progress-bar mb-sm">
+                                    <div
+                                        className="progress-fill"
+                                        style={{ width: `${progressPercent}%` }}
+                                    />
+                                </div>
+
+                                <p className="text-xs text-muted mb-sm">
+                                    {isComplete ? 'All rounds complete!' : `On Round ${completedRounds + 1} of 4`}
+                                </p>
+
+                                <button
+                                    onClick={() => openEditModal(team)}
+                                    className="btn btn-secondary btn-sm w-full"
+                                >
+                                    ✏️ Edit Team
+                                </button>
                             </div>
-
-                            <div className="progress-bar mb-sm">
-                                <div
-                                    className="progress-fill"
-                                    style={{ width: `${Math.min((team.currentRound / 4) * 100, 100)}%` }}
-                                />
-                            </div>
-
-                            <p className="text-xs text-muted mb-sm">
-                                Progress: {team.currentRound} / 4 locations
-                            </p>
-
-                            <button
-                                onClick={() => openEditModal(team)}
-                                className="btn btn-secondary btn-sm w-full"
-                            >
-                                ✏️ Edit Riddles
-                            </button>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -187,63 +212,140 @@ const AdminDashboard: React.FC = () => {
     const renderEditModal = () => {
         if (!editingTeam) return null;
 
+        const baseUrl = window.location.origin;
+        const locations = Array.from({ length: 12 }, (_, i) => `LOC_${i + 1}`);
+
         return (
             <div className="modal-overlay" onClick={() => !saving && setEditingTeam(null)}>
-                <div className="modal-content card fade-in" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header mb-lg">
-                        <h2 className="mb-xs">Edit {editingTeam.teamName}</h2>
-                        <p className="text-sm text-muted">{editingTeam.teamCode} - Configure all 4 rounds</p>
+                <div 
+                    className="modal-content card fade-in" 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ maxWidth: '1000px' }}
+                >
+                    <div className="modal-header mb-md">
+                        <h2 className="mb-xs">Edit Team Configuration</h2>
+                        <p className="text-sm text-muted">{editingTeam.teamCode}</p>
                     </div>
 
-                    <div className="modal-body" style={{
-                        maxHeight: '60vh',
-                        overflowY: 'auto',
-                        paddingRight: 'var(--spacing-xs)'
+                    {/* Team Name */}
+                    <div className="form-group mb-lg">
+                        <label htmlFor="team-name">Team Name</label>
+                        <input
+                            id="team-name"
+                            className="input"
+                            value={editTeamName}
+                            onChange={(e) => setEditTeamName(e.target.value)}
+                            placeholder="Team Name"
+                            disabled={saving}
+                            style={{ fontSize: '1.1rem', fontWeight: '600' }}
+                        />
+                    </div>
+
+                    <div className="divider mb-md"></div>
+
+                    {/* Compact 2-Column Grid for All 4 Rounds */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: 'var(--spacing-md)',
+                        marginBottom: 'var(--spacing-lg)'
                     }}>
                         {editRoute.map((item, idx) => (
                             <div
                                 key={idx}
-                                className="riddle-group mb-lg"
-                                style={{
-                                    paddingBottom: 'var(--spacing-md)',
-                                    borderBottom: idx < editRoute.length - 1 ? '2px solid var(--brown-light)' : 'none'
-                                }}
+                                className="panel panel-tight"
+                                style={{ background: 'rgba(212, 175, 55, 0.05)' }}
                             >
-                                <h4 className="mb-sm" style={{ color: 'var(--gold-dark)' }}>
+                                <h4 className="mb-sm" style={{ color: 'var(--gold-dark)', fontSize: '1rem' }}>
                                     🔹 Round {idx + 1}
                                 </h4>
 
+                                {/* Location Dropdown */}
                                 <div className="form-group">
-                                    <label htmlFor={`loc-${idx}`}>Target Location ID</label>
-                                    <input
-                                        id={`loc-${idx}`}
-                                        className="input"
-                                        value={item.locationId}
-                                        onChange={e => updateRouteItem(idx, 'locationId', e.target.value.toUpperCase())}
-                                        placeholder="e.g. LOC_1"
-                                        disabled={saving}
-                                    />
+                                    <label htmlFor={`loc-${idx}`} className="text-sm">Target Location</label>
+                                    <div className="flex gap-xs items-center">
+                                        <select
+                                            id={`loc-${idx}`}
+                                            className="input"
+                                            value={item.locationId}
+                                            onChange={e => updateRouteItem(idx, 'locationId', e.target.value)}
+                                            disabled={saving}
+                                            style={{ flex: 1, padding: '0.5rem' }}
+                                        >
+                                            <option value="">Select Location</option>
+                                            {locations.map(loc => (
+                                                <option key={loc} value={loc}>{loc}</option>
+                                            ))}
+                                        </select>
+                                        
+                                        {/* Inline QR Preview Button */}
+                                        {item.locationId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setQrPreview(item.locationId)}
+                                                className="btn btn-secondary btn-sm"
+                                                style={{ padding: '0.5rem', minWidth: 'auto' }}
+                                                title="Preview QR"
+                                            >
+                                                📱
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
+                                {/* Compact Riddle */}
                                 <div className="form-group">
-                                    <label htmlFor={`riddle-${idx}`}>Riddle / Clue</label>
+                                    <label htmlFor={`riddle-${idx}`} className="text-sm">Riddle / Clue</label>
                                     <textarea
                                         id={`riddle-${idx}`}
                                         className="input"
                                         value={item.riddle}
                                         onChange={e => updateRouteItem(idx, 'riddle', e.target.value)}
-                                        placeholder="Enter the riddle students see BEFORE finding this location..."
+                                        placeholder="Enter riddle..."
                                         rows={3}
                                         disabled={saving}
+                                        style={{ fontSize: '0.9rem', padding: '0.5rem' }}
                                     />
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <div className="modal-footer flex gap-md justify-end mt-lg">
+                    {/* QR Preview Panel */}
+                    {qrPreview && (
+                        <div className="notice mb-lg" style={{ textAlign: 'center' }}>
+                            <h4 className="mb-sm notice-title">QR Code Preview: {qrPreview}</h4>
+                            <div style={{ 
+                                background: 'white', 
+                                padding: 'var(--spacing-md)', 
+                                borderRadius: 'var(--radius-md)',
+                                display: 'inline-block'
+                            }}>
+                                <QRCode
+                                    value={`${baseUrl}/scan?loc=${qrPreview}`}
+                                    size={150}
+                                    style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                                />
+                            </div>
+                            <p className="text-sm text-muted mt-sm">
+                                URL: {baseUrl}/scan?loc={qrPreview}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setQrPreview(null)}
+                                className="btn btn-secondary btn-sm mt-sm"
+                            >
+                                Close Preview
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="modal-footer flex gap-md justify-end">
                         <button
-                            onClick={() => setEditingTeam(null)}
+                            onClick={() => {
+                                setEditingTeam(null);
+                                setQrPreview(null);
+                            }}
                             className="btn btn-secondary"
                             disabled={saving}
                         >

@@ -290,29 +290,43 @@ body {
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, var(--parchment-lightest) 0%, var(--parchment-light) 100%);
-}
-
-.modal-body {
-    flex: 1;
     overflow-y: auto;
 }
 
-.modal-body::-webkit-scrollbar {
+.modal-content::-webkit-scrollbar {
     width: 8px;
 }
 
-.modal-body::-webkit-scrollbar-track {
+.modal-content::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
     border-radius: 4px;
 }
 
-.modal-body::-webkit-scrollbar-thumb {
+.modal-content::-webkit-scrollbar-thumb {
     background: var(--brown-medium);
     border-radius: 4px;
 }
 
-.modal-body::-webkit-scrollbar-thumb:hover {
+.modal-content::-webkit-scrollbar-thumb:hover {
     background: var(--brown-dark);
+}
+
+.modal-header {
+    border-bottom: 2px solid var(--brown-light);
+    padding-bottom: var(--spacing-sm);
+}
+
+.modal-footer {
+    border-top: 2px solid var(--brown-light);
+    padding-top: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 95vw;
+        max-height: 95vh;
+    }
 }
 
 /* ==================== LAYOUT UTILITIES ==================== */

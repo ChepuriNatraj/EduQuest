@@ -11,6 +11,8 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
     const [qrType, setQrType] = useState<'location' | 'registration'>('location');
     const [teamCode, setTeamCode] = useState('');
 
+    const locations = Array.from({ length: 12 }, (_, i) => `LOC_${i + 1}`);
+
     const handlePrint = () => {
         const printContent = document.getElementById('qr-to-print');
         const win = window.open('', '', 'height=700,width=700');
@@ -91,16 +93,19 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                 ) : (
                     <div className="form-group">
                         <label htmlFor="location-id">Location ID</label>
-                        <input
+                        <select
                             id="location-id"
-                            type="text"
-                            value={locId}
-                            onChange={(e) => setLocId(e.target.value.toUpperCase())}
                             className="input"
-                            placeholder="e.g. LOC_1, LOC_2, FINAL..."
-                        />
+                            value={locId}
+                            onChange={(e) => setLocId(e.target.value)}
+                        >
+                            <option value="">Select Location</option>
+                            {locations.map(loc => (
+                                <option key={loc} value={loc}>{loc}</option>
+                            ))}
+                        </select>
                         <p className="text-xs text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-                            💡 Enter the LOCATION ID only (teams enter their secret code on the scan page)
+                            💡 Choose from 12 fixed location checkpoints (teams enter their secret code on the scan page)
                         </p>
                     </div>
                 )}
