@@ -23,45 +23,25 @@ const AdminLayout: React.FC = () => {
 
     return (
         <div className="admin-layout">
-            <div className="admin-header" style={{
-                background: 'linear-gradient(135deg, var(--brown-dark), var(--brown-medium))',
-                padding: 'var(--spacing-sm) var(--spacing-lg)',
-                marginBottom: 'var(--spacing-lg)',
-                boxShadow: 'var(--shadow-md)',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100
-            }}>
+            <div className="admin-header">
                 <div className="container">
                     <div className="flex justify-between items-center">
                         {/* Mini Logo Trio in Header */}
-                        <div className="flex items-center gap-sm">
+                        <div className="brand-logos" style={{ marginBottom: 0, justifyContent: 'flex-start', gap: 'var(--spacing-sm)' }}>
                             <img
                                 src="/assets/width_193.png"
                                 alt="EduMoon"
-                                style={{
-                                    maxWidth: '40px',
-                                    height: 'auto',
-                                    filter: 'brightness(1.2)'
-                                }}
+                                className="brand-logo brand-logo--xs"
                             />
                             <img
                                 src="/assets/width_800.png"
                                 alt="Admin"
-                                style={{
-                                    maxWidth: '100px',
-                                    height: 'auto',
-                                    filter: 'brightness(1.2)'
-                                }}
+                                className="brand-logo brand-logo--md"
                             />
                             <img
                                 src="/assets/width_500.png"
                                 alt="EduMoon"
-                                style={{
-                                    maxWidth: '60px',
-                                    height: 'auto',
-                                    filter: 'brightness(1.2)'
-                                }}
+                                className="brand-logo brand-logo--sm"
                             />
                         </div>
                         <button

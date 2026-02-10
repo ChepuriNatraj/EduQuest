@@ -62,10 +62,10 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                         value={locId}
                         onChange={(e) => setLocId(e.target.value.toUpperCase())}
                         className="input"
-                        placeholder="e.g. LOC_1, LOC_2, LOC_3..."
+                        placeholder="e.g. LOC_1, LOC_2, FINAL..."
                     />
                     <p className="text-xs text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-                        💡 Enter the unique ID for this treasure hunt location
+                        💡 Enter the LOCATION ID only (teams enter their team code on the scan page)
                     </p>
                 </div>
 
@@ -115,7 +115,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                         <p style={{
                             margin: '0',
                             fontSize: '0.9rem',
-                            color: '#666',
+                            color: 'var(--brown-light)',
                             fontStyle: 'italic'
                         }}>
                             🗝️ Scan to unlock the next clue
@@ -140,12 +140,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                 </div>
 
                 {!locId && (
-                    <div className="text-center mt-lg" style={{
-                        padding: 'var(--spacing-md)',
-                        background: 'rgba(212, 175, 55, 0.1)',
-                        borderRadius: 'var(--radius-md)',
-                        border: '2px dashed var(--gold-medium)'
-                    }}>
+                    <div className="text-center mt-lg hint-box">
                         <p className="text-sm text-muted">
                             ⬆️ Enter a location ID above to generate its QR code
                         </p>

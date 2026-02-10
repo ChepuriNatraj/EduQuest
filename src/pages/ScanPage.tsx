@@ -119,52 +119,33 @@ const ScanPage: React.FC = () => {
     };
 
     return (
-        <div className="container-sm" style={{ minHeight: '100vh', paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
-            <div className={`card fade-in ${shake ? 'shake-anim' : ''}`} style={{ maxWidth: '600px', margin: '0 auto' }}>
-                {/* Three Logo Display */}
-                <div className="logo-trio mb-lg" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 'var(--spacing-sm)',
-                    marginBottom: 'var(--spacing-md)',
-                    flexWrap: 'wrap'
-                }}>
-                    <img
-                        src="/assets/width_193.png"
-                        alt="EduMoon"
-                        style={{
-                            maxWidth: '80px',
-                            height: 'auto',
-                            filter: 'sepia(0.3) brightness(0.9)',
-                            opacity: 0.85
-                        }}
-                    />
-                    <img
-                        src="/assets/width_800.png"
-                        alt="EduMoon Student Clubs"
-                        style={{
-                            maxWidth: '200px',
-                            height: 'auto',
-                            filter: 'sepia(0.3) brightness(0.9)'
-                        }}
-                    />
-                    <img
-                        src="/assets/width_500.png"
-                        alt="EduMoon"
-                        style={{
-                            maxWidth: '120px',
-                            height: 'auto',
-                            filter: 'sepia(0.3) brightness(0.9)',
-                            opacity: 0.85
-                        }}
-                    />
-                </div>
+        <div className="page">
+            <div className="container-sm">
+                <div className={`card fade-in ${shake ? 'shake-anim' : ''}`}>
+                    <div className="brand-header">
+                        <div className="brand-logos">
+                            <img
+                                className="brand-logo brand-logo--sm brand-logo--soft"
+                                src="/assets/width_193.png"
+                                alt="EduMoon"
+                            />
+                            <img
+                                className="brand-logo brand-logo--lg"
+                                src="/assets/width_800.png"
+                                alt="EduMoon Student Clubs"
+                            />
+                            <img
+                                className="brand-logo brand-logo--md brand-logo--soft"
+                                src="/assets/width_500.png"
+                                alt="EduMoon"
+                            />
+                        </div>
 
-                <h1 className="gradient-text text-center mb-sm">Treasure Hunt</h1>
+                        <h1 className="gradient-text mb-sm">Treasure Hunt</h1>
+                    </div>
 
                 {locationId && (
-                    <div className="badge badge-warning" style={{ display: 'inline-block', marginBottom: 'var(--spacing-md)' }}>
+                    <div className="badge badge-warning" style={{ marginBottom: 'var(--spacing-md)' }}>
                         📍 Location: {locationId.toUpperCase()}
                     </div>
                 )}
@@ -215,22 +196,9 @@ const ScanPage: React.FC = () => {
 
                 {/* Current Clue Display */}
                 {showCurrentClue && !result && (
-                    <div className="clue-display fade-in" style={{
-                        padding: 'var(--spacing-md)',
-                        background: 'rgba(212, 175, 55, 0.1)',
-                        border: '2px solid var(--gold-medium)',
-                        borderRadius: 'var(--radius-md)',
-                        marginTop: 'var(--spacing-lg)'
-                    }}>
-                        <h3 className="text-center mb-md" style={{ color: 'var(--gold-dark)' }}>
-                            📜 Your Current Clue
-                        </h3>
-                        <p className="text-center" style={{
-                            fontSize: '1.1rem',
-                            fontStyle: 'italic',
-                            color: 'var(--brown-darkest)',
-                            lineHeight: 1.8
-                        }}>
+                    <div className="notice fade-in" style={{ marginTop: 'var(--spacing-lg)' }}>
+                        <h3 className="notice-title text-center mb-md">📜 Your Current Clue</h3>
+                        <p className="notice-body text-center" style={{ marginBottom: 0 }}>
                             "{currentClueText}"
                         </p>
                     </div>
@@ -239,23 +207,15 @@ const ScanPage: React.FC = () => {
                 {/* Result Display */}
                 {result && (
                     <div className={`result-display fade-in ${result.success ? 'bounce' : ''}`}>
-                        <div style={{
-                            textAlign: 'center',
-                            padding: 'var(--spacing-lg)',
-                            background: result.success
-                                ? 'rgba(45, 80, 22, 0.1)'
-                                : 'rgba(139, 0, 0, 0.1)',
-                            border: `3px solid ${result.success ? 'var(--success)' : 'var(--error)'}`,
-                            borderRadius: 'var(--radius-lg)',
-                        }}>
+                        <div className={`result-box ${result.success ? 'result-box--success' : 'result-box--error'}`}>
                             <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>
                                 {result.success ? '✅' : '❌'}
                             </div>
 
-                            <h2 className="mb-md" style={{
-                                color: result.success ? 'var(--success)' : 'var(--error)',
-                                fontSize: '1.8rem'
-                            }}>
+                            <h2
+                                className={`mb-md ${result.success ? 'result-title--success' : 'result-title--error'}`}
+                                style={{ fontSize: '1.8rem' }}
+                            >
                                 {result.success ? 'ACCESS GRANTED!' : 'ACCESS DENIED'}
                             </h2>
 
@@ -268,22 +228,11 @@ const ScanPage: React.FC = () => {
                             </p>
 
                             {result.success && result.riddle && !result.isCompleted && (
-                                <div style={{
-                                    padding: 'var(--spacing-md)',
-                                    background: 'rgba(212, 175, 55, 0.15)',
-                                    border: '2px solid var(--gold-medium)',
-                                    borderRadius: 'var(--radius-md)',
-                                    marginTop: 'var(--spacing-lg)'
-                                }}>
-                                    <h3 className="mb-sm" style={{ color: 'var(--gold-dark)' }}>
+                                <div className="notice" style={{ marginTop: 'var(--spacing-lg)' }}>
+                                    <h3 className="mb-sm notice-title">
                                         🗝️ Next Clue
                                     </h3>
-                                    <p style={{
-                                        fontSize: '1.05rem',
-                                        fontStyle: 'italic',
-                                        color: 'var(--brown-darkest)',
-                                        lineHeight: 1.8
-                                    }}>
+                                    <p className="notice-body" style={{ marginBottom: 0 }}>
                                         "{result.riddle}"
                                     </p>
                                 </div>
@@ -320,15 +269,13 @@ const ScanPage: React.FC = () => {
                 )}
 
                 {!locationId && (
-                    <div className="text-center" style={{
-                        padding: 'var(--spacing-xl)',
-                        color: 'var(--brown-light)'
-                    }}>
+                    <div className="text-center" style={{ padding: 'var(--spacing-xl)', color: 'var(--brown-light)' }}>
                         <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📷</div>
                         <h2 className="mb-md">No Location Scanned</h2>
                         <p>Please scan a QR code to begin your treasure hunt adventure!</p>
                     </div>
                 )}
+            </div>
             </div>
         </div>
     );

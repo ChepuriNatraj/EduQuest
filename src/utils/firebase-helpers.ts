@@ -55,6 +55,42 @@ export interface ValidationResult {
     isCompleted?: boolean;
 }
 
+function normalizeTeamCode(input: string): string {
+    const cleaned = (input || '')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '')
+        .replace(/-/g, '');
+
+    const teamMatch = cleaned.match(/^TEAM(\d+)$/);
+    if (teamMatch) {
+        const num = teamMatch[1].padStart(3, '0');
+        return `TEAM${num}`;
+    }
+
+    const digitsOnly = cleaned.match(/^(\d+)$/);
+    if (digitsOnly) {
+        const num = digitsOnly[1].padStart(3, '0');
+        return `TEAM${num}`;
+    }
+
+    return cleaned;
+}
+
+function normalizeLocationId(input: string): string {
+    const cleaned = (input || '')
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '');
+
+    const locMatch = cleaned.match(/^LOC[_-]?(\d+)$/);
+    if (locMatch) {
+        return `LOC_${locMatch[1]}`;
+    }
+
+    return cleaned.replace(/-/g, '_');
+}
+
 // ==========================================
 // TEAM FUNCTIONS
 // ==========================================
@@ -64,8 +100,16 @@ export interface ValidationResult {
  */
 export async function getTeamByCode(teamCode: string): Promise<Team | null> {
     try {
+        const normalizedTeamCode = normalizeTeamCode(teamCode);
+
+        // Fast path: in this project, team docs are often stored by team code as document ID.
+        const byId = await getDoc(doc(db, 'teams', normalizedTeamCode));
+        if (byId.exists()) {
+            return byId.data() as Team;
+        }
+
         const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('teamCode', '==', teamCode.toUpperCase()));
+        const q = query(teamsRef, where('teamCode', '==', normalizedTeamCode));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -87,7 +131,10 @@ export async function validateTeamScan(
     scannedLocation: string
 ): Promise<ValidationResult> {
     try {
-        const team = await getTeamByCode(teamCode);
+        const normalizedTeamCode = normalizeTeamCode(teamCode);
+        const normalizedScannedLocation = normalizeLocationId(scannedLocation);
+
+        const team = await getTeamByCode(normalizedTeamCode);
 
         if (!team) {
             return {
@@ -97,7 +144,7 @@ export async function validateTeamScan(
         }
 
         // Check if team already completed
-        if (team.currentRound > 4) {
+        if (team.currentRound >= 4) {
             return {
                 success: false,
                 message: "You've already finished the treasure hunt! Congratulations!",
@@ -125,10 +172,10 @@ export async function validateTeamScan(
         }
 
         const expectedRouteItem = team.route[targetRoundIndex];
-        const expectedLocationId = expectedRouteItem.locationId;
+        const expectedLocationId = normalizeLocationId(expectedRouteItem.locationId);
 
         // Dynamic Check:
-        if (scannedLocation.toUpperCase() !== expectedLocationId.toUpperCase()) {
+        if (normalizedScannedLocation !== expectedLocationId) {
             return {
                 success: false,
                 message: `This is not your next location! Keep looking!`,
@@ -138,7 +185,7 @@ export async function validateTeamScan(
 
         // Correct Location Found! Update Team Progress
         const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('teamCode', '==', teamCode.toUpperCase()));
+        const q = query(teamsRef, where('teamCode', '==', normalizedTeamCode));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
@@ -146,7 +193,7 @@ export async function validateTeamScan(
             const newRound = team.currentRound + 1;
             const newScan: ScanRecord = {
                 round: newRound,
-                location: scannedLocation.toUpperCase(),
+                location: normalizedScannedLocation,
                 timestamp: new Date().toISOString()
             };
 

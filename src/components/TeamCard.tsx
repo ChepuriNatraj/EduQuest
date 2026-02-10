@@ -9,7 +9,7 @@ interface TeamCardProps {
 const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
     const isCompleted = team.completedAt !== null;
     const lastScan = team.scans[team.scans.length - 1];
-    const progress = Math.min((team.currentRound - 1) / 4 * 100, 100);
+    const progress = Math.min((team.currentRound / 4) * 100, 100);
 
     return (
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -19,7 +19,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                         <span style={{
                             fontSize: '2rem',
                             fontWeight: '700',
-                            background: 'linear-gradient(135deg, var(--primary-pink), var(--primary-purple))',
+                            background: 'linear-gradient(135deg, var(--gold-bright), var(--gold-dark))',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             marginRight: '0.5rem'
@@ -28,7 +28,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                         </span>
                     )}
                     <h3 style={{ display: 'inline' }}>{team.teamName}</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                    <p style={{ color: 'var(--brown-light)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
                         Code: {team.teamCode}
                     </p>
                 </div>
@@ -45,10 +45,10 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                     justifyContent: 'space-between',
                     marginBottom: '0.5rem',
                     fontSize: '0.9rem',
-                    color: 'var(--text-secondary)'
+                    color: 'var(--brown-light)'
                 }}>
                     <span>Progress</span>
-                    <span>{Math.min(team.currentRound - 1, 4)}/4 Rounds</span>
+                    <span>{Math.min(team.currentRound, 4)}/4 Rounds</span>
                 </div>
                 <div style={{
                     width: '100%',
@@ -60,7 +60,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                     <div style={{
                         width: `${progress}%`,
                         height: '100%',
-                        background: 'linear-gradient(90deg, var(--primary-pink), var(--primary-purple))',
+                        background: 'linear-gradient(90deg, var(--gold-dark), var(--gold-bright))',
                         transition: 'width 0.5s ease'
                     }}></div>
                 </div>
@@ -75,14 +75,14 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
             }}>
                 <div>
                     <p style={{
-                        color: 'var(--text-secondary)',
+                        color: 'var(--brown-light)',
                         fontSize: '0.85rem',
                         marginBottom: '0.25rem'
                     }}>
                         Current Round
                     </p>
                     <p style={{ fontSize: '1.3rem', fontWeight: '600' }}>
-                        {team.currentRound > 4 ? 'Finished' : `Round ${team.currentRound}`}
+                        {team.currentRound >= 4 ? 'Finished' : `Round ${team.currentRound + 1}`}
                     </p>
                 </div>
 
@@ -90,7 +90,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                     <>
                         <div>
                             <p style={{
-                                color: 'var(--text-secondary)',
+                                color: 'var(--brown-light)',
                                 fontSize: '0.85rem',
                                 marginBottom: '0.25rem'
                             }}>
@@ -103,7 +103,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
 
                         <div>
                             <p style={{
-                                color: 'var(--text-secondary)',
+                                color: 'var(--brown-light)',
                                 fontSize: '0.85rem',
                                 marginBottom: '0.25rem'
                             }}>
@@ -119,7 +119,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                 {isCompleted && team.completedAt && (
                     <div>
                         <p style={{
-                            color: 'var(--text-secondary)',
+                            color: 'var(--brown-light)',
                             fontSize: '0.85rem',
                             marginBottom: '0.25rem'
                         }}>
@@ -134,7 +134,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, rank }) => {
                 {!isCompleted && (
                     <div>
                         <p style={{
-                            color: 'var(--text-secondary)',
+                            color: 'var(--brown-light)',
                             fontSize: '0.85rem',
                             marginBottom: '0.25rem'
                         }}>

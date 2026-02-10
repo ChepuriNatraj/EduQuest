@@ -190,42 +190,21 @@ const AdminDashboard: React.FC = () => {
     return (
         <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
             {/* Three Logo Display */}
-            <div className="logo-trio mb-md" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'var(--spacing-sm)',
-                marginBottom: 'var(--spacing-md)',
-                flexWrap: 'wrap'
-            }}>
+            <div className="brand-logos" style={{ marginBottom: 'var(--spacing-md)', gap: 'var(--spacing-sm)' }}>
                 <img
                     src="/assets/width_193.png"
                     alt="EduMoon"
-                    style={{
-                        maxWidth: '70px',
-                        height: 'auto',
-                        filter: 'sepia(0.3) brightness(0.9)',
-                        opacity: 0.85
-                    }}
+                    className="brand-logo brand-logo--sm brand-logo--soft"
                 />
                 <img
                     src="/assets/width_800.png"
                     alt="EduMoon Student Clubs"
-                    style={{
-                        maxWidth: '180px',
-                        height: 'auto',
-                        filter: 'sepia(0.3) brightness(0.9)'
-                    }}
+                    className="brand-logo brand-logo--lg"
                 />
                 <img
                     src="/assets/width_500.png"
                     alt="EduMoon"
-                    style={{
-                        maxWidth: '110px',
-                        height: 'auto',
-                        filter: 'sepia(0.3) brightness(0.9)',
-                        opacity: 0.85
-                    }}
+                    className="brand-logo brand-logo--md brand-logo--soft"
                 />
             </div>
 
@@ -251,54 +230,6 @@ const AdminDashboard: React.FC = () => {
 
             {activeTab === 'teams' ? renderTeams() : <QRGenerator />}
             {renderEditModal()}
-
-            <style>{`
-                .modal-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.6);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 1000;
-                    padding: var(--spacing-md);
-                }
-                
-                .modal-content {
-                    width: 100%;
-                    max-width: 700px;
-                    max-height: 90vh;
-                    display: flex;
-                    flex-direction: column;
-                    background: linear-gradient(135deg, var(--parchment-lightest) 0%, var(--parchment-light) 100%);
-                }
-
-                .modal-body {
-                    flex: 1;
-                    overflow-y: auto;
-                }
-
-                .modal-body::-webkit-scrollbar {
-                    width: 8px;
-                }
-
-                .modal-body::-webkit-scrollbar-track {
-                    background: rgba(0, 0, 0, 0.05);
-                    border-radius: 4px;
-                }
-
-                .modal-body::-webkit-scrollbar-thumb {
-                    background: var(--brown-medium);
-                    border-radius: 4px;
-                }
-
-                .modal-body::-webkit-scrollbar-thumb:hover {
-                    background: var(--brown-dark);
-                }
-            `}</style>
         </div>
     );
 };
