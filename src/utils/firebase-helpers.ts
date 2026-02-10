@@ -83,6 +83,16 @@ function normalizeLocationId(input: string): string {
         .toUpperCase()
         .replace(/\s+/g, '');
 
+    // If someone generated a QR that accidentally includes extra text
+    // (e.g., "TEAM-7LOC_1"), extract the location token.
+    const embedded = cleaned.match(/(LOC[_-]?\d+|FINAL)/);
+    if (embedded) {
+        const token = embedded[1];
+        if (token === 'FINAL') return 'FINAL';
+        const tokenMatch = token.match(/^LOC[_-]?(\d+)$/);
+        if (tokenMatch) return `LOC_${tokenMatch[1]}`;
+    }
+
     const locMatch = cleaned.match(/^LOC[_-]?(\d+)$/);
     if (locMatch) {
         return `LOC_${locMatch[1]}`;
