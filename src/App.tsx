@@ -2,12 +2,14 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ScanPage from './pages/ScanPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './layout/AdminLayout';
+import RegistrationPage from './pages/RegistrationPage';
 
 function App() {
     return (
         <Router>
             <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/register" element={<RegistrationPage />} />
                 <Route path="/scan" element={<ScanPage />} />
                 <Route element={<AdminLayout />}>
                     <Route path="/admin" element={<AdminDashboard />} />

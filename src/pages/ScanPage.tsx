@@ -154,21 +154,23 @@ const ScanPage: React.FC = () => {
                 {!result && locationId && (
                     <div className="scan-form">
                         <p className="text-center mb-lg" style={{ fontSize: '1.05rem', color: 'var(--brown-dark)' }}>
-                            Enter your <strong>Team Code</strong> to verify this checkpoint
+                            Enter your <strong>Secret Code</strong> to verify this checkpoint
                         </p>
 
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label htmlFor="teamCode">Team Code</label>
+                                <label htmlFor="teamCode">Secret Code (4 digits + 1 letter)</label>
                                 <input
                                     id="teamCode"
                                     type="text"
                                     className="input"
                                     value={teamCode}
                                     onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                                    placeholder="e.g. TEAM001"
+                                    placeholder="e.g. 1234A"
+                                    maxLength={5}
                                     disabled={loading}
                                     required
+                                    style={{ fontSize: '1.5rem', textAlign: 'center', letterSpacing: '0.2em' }}
                                 />
                             </div>
 
@@ -191,6 +193,13 @@ const ScanPage: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+
+                        <div className="notice" style={{ marginTop: 'var(--spacing-lg)' }}>
+                            <p className="text-sm text-center" style={{ marginBottom: 0 }}>
+                                📞 <strong>Forgot your code?</strong><br />
+                                Call Moderator: <a href="tel:8309223139" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>8309223139</a> or <a href="tel:8309302507" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>8309302507</a>
+                            </p>
+                        </div>
                     </div>
                 )}
 

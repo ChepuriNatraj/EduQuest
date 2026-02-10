@@ -10,7 +10,7 @@ import QRGenerator from '../components/QRGenerator';
 
 const AdminDashboard: React.FC = () => {
     const [teams, setTeams] = useState<Team[]>([]);
-    const [activeTab, setActiveTab] = useState<'teams' | 'qr'>('teams');
+    const [activeTab, setActiveTab] = useState<'teams' | 'qr' | 'registrations'>('teams');
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
     const [editRoute, setEditRoute] = useState<RouteItem[]>([]);
     const [saving, setSaving] = useState(false);
@@ -24,6 +24,76 @@ const AdminDashboard: React.FC = () => {
         if (confirm("This will create/reset 15 Teams (TEAM001 - TEAM015). Continue?")) {
             await initializeTeams(15);
         }
+    };
+
+    const handleDownloadRegistrations = () => {
+        const registeredTeams = teams.filter(t => t.isRegistered);
+        
+        if (registeredTeams.length === 0) {
+            alert('No registered teams yet!');
+            return;
+        }
+
+        // Create CSV content
+        let csv = 'Team Code,Secret Code,Member 1 Name,Member 1 Mobile,Member 1 Branch,Member 1 Year,Member 2 Name,Member 2 Mobile,Member 2 Branch,Member 2 Year,Member 3 Name,Member 3 Mobile,Member 3 Branch,Member 3 Year,Member 4 Name,Member 4 Mobile,Member 4 Branch,Member 4 Year,Member 5 Name,Member 5 Mobile,Member 5 Branch,Member 5 Year,Registration Time,Current Round,Completed\n';
+        
+        registeredTeams.forEach(team => {
+            const members = team.teamMembers || [];
+            const row = [
+                team.teamCode,
+                team.secretCode || '',
+                ...members.flatMap(m => [m.name, m.mobile, m.branch, m.year]),
+                team.startTime,
+                team.currentRound,
+                team.completedAt ? 'Yes' : 'No'
+            ];
+            csv += row.map(field => `"${field}"`).join(',') + '\n';
+        });
+
+        // Download CSV
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `treasure_hunt_registrations_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDownloadProgress = () => {
+        if (teams.length === 0) {
+            alert('No teams yet!');
+            return;
+        }
+
+        // Create CSV content
+        let csv = 'Team Code,Team Name,Secret Code,Current Round,Completed,Completion Time,Total Scans\n';
+        
+        teams.forEach(team => {
+            const row = [
+                team.teamCode,
+                team.teamName,
+                team.secretCode || 'Not Registered',
+                team.currentRound,
+                team.completedAt ? 'Yes' : 'No',
+                team.completedAt || 'In Progress',
+                team.scans.length
+            ];
+            csv += row.map(field => `"${field}"`).join(',') + '\n';
+        });
+
+        // Download CSV
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `treasure_hunt_progress_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const openEditModal = (team: Team) => {
@@ -60,9 +130,14 @@ const AdminDashboard: React.FC = () => {
                     <h2 className="mb-xs">Team Management</h2>
                     <p className="text-sm text-muted">Configure riddles and routes for each team</p>
                 </div>
-                <button onClick={handleInitTeams} className="btn btn-primary">
-                    🚀 Initialize 15 Teams
-                </button>
+                <div className="flex gap-sm">
+                    <button onClick={handleDownloadProgress} className="btn btn-secondary">
+                        📊 Download Progress
+                    </button>
+                    <button onClick={handleInitTeams} className="btn btn-primary">
+                        🚀 Initialize 15 Teams
+                    </button>
+                </div>
             </div>
 
             {teams.length === 0 ? (
@@ -187,6 +262,80 @@ const AdminDashboard: React.FC = () => {
         );
     };
 
+    const renderRegistrations = () => {
+        const registeredTeams = teams.filter(t => t.isRegistered);
+        const unregisteredTeams = teams.filter(t => !t.isRegistered);
+
+        return (
+            <div className="registrations-view">
+                <div className="flex justify-between items-center mb-lg">
+                    <div>
+                        <h2 className="mb-xs">Team Registrations</h2>
+                        <p className="text-sm text-muted">
+                            {registeredTeams.length} of {teams.length} teams registered
+                        </p>
+                    </div>
+                    <button onClick={handleDownloadRegistrations} className="btn btn-primary" disabled={registeredTeams.length === 0}>
+                        📥 Download Registrations
+                    </button>
+                </div>
+
+                {registeredTeams.length === 0 ? (
+                    <div className="card text-center p-lg">
+                        <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📋</div>
+                        <h3 className="mb-sm">No Registrations Yet</h3>
+                        <p className="text-muted">Teams will appear here once they complete registration</p>
+                    </div>
+                ) : (
+                    <>
+                        <h3 className="mb-md" style={{ color: 'var(--gold-dark)' }}>✅ Registered Teams</h3>
+                        <div className="grid grid-cols-1 gap-md mb-xl">
+                            {registeredTeams.map(team => (
+                                <div key={team.teamCode} className="card">
+                                    <div className="flex justify-between items-start mb-md">
+                                        <div>
+                                            <h4 className="mb-xs">{team.teamName} ({team.teamCode})</h4>
+                                            <p className="text-sm" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>
+                                                Secret Code: {team.secretCode}
+                                            </p>
+                                        </div>
+                                        <span className={`badge ${team.completedAt ? 'badge-success' : 'badge-warning'}`}>
+                                            Round {team.currentRound >= 4 ? '4/4 ✓' : `${team.currentRound + 1}/4`}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-sm">
+                                        {team.teamMembers?.map((member, idx) => (
+                                            <div key={idx} className="panel panel-tight">
+                                                <p className="text-xs text-muted mb-xs">Member {idx + 1}</p>
+                                                <p style={{ fontWeight: '600', fontSize: '0.9rem' }}>{member.name}</p>
+                                                <p className="text-xs text-muted">{member.mobile}</p>
+                                                <p className="text-xs text-muted">{member.branch} - Year {member.year}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {unregisteredTeams.length > 0 && (
+                            <>
+                                <h3 className="mb-md" style={{ color: 'var(--brown-medium)' }}>⏳ Pending Registration</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-sm">
+                                    {unregisteredTeams.map(team => (
+                                        <div key={team.teamCode} className="badge badge-warning" style={{ padding: 'var(--spacing-sm)' }}>
+                                            {team.teamCode}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
             {/* Three Logo Display */}
@@ -220,6 +369,12 @@ const AdminDashboard: React.FC = () => {
                         👥 Teams & Riddles
                     </button>
                     <button
+                        className={`btn ${activeTab === 'registrations' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setActiveTab('registrations')}
+                    >
+                        📋 Registrations
+                    </button>
+                    <button
                         className={`btn ${activeTab === 'qr' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('qr')}
                     >
@@ -228,7 +383,9 @@ const AdminDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {activeTab === 'teams' ? renderTeams() : <QRGenerator />}
+            {activeTab === 'teams' && renderTeams()}
+            {activeTab === 'registrations' && renderRegistrations()}
+            {activeTab === 'qr' && <QRGenerator />}
             {renderEditModal()}
         </div>
     );

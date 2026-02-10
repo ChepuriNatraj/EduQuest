@@ -18,9 +18,19 @@ export { db }; // Export db for use in components
 // TYPES & INTERFACES
 // ==========================================
 
+export interface TeamMember {
+    name: string;
+    mobile: string;
+    branch: string;
+    year: string;
+}
+
 export interface Team {
     teamCode: string;
     teamName: string;
+    secretCode?: string;
+    isRegistered?: boolean;
+    teamMembers?: TeamMember[];
     currentRound: number;
     route: RouteItem[];
     scans: ScanRecord[];
@@ -75,6 +85,15 @@ function normalizeTeamCode(input: string): string {
     }
 
     return cleaned;
+}
+
+function validateSecretCode(code: string): boolean {
+    const normalized = code.trim().toUpperCase();
+    return /^[0-9]{4}[A-Z]$/.test(normalized);
+}
+
+function normalizeSecretCode(code: string): string {
+    return code.trim().toUpperCase();
 }
 
 function normalizeLocationId(input: string): string {
@@ -134,22 +153,123 @@ export async function getTeamByCode(teamCode: string): Promise<Team | null> {
 }
 
 /**
- * Validate team scan at a location
+ * Get team by secret code
+ */
+export async function getTeamBySecretCode(secretCode: string): Promise<Team | null> {
+    try {
+        const normalizedCode = normalizeSecretCode(secretCode);
+        const teamsRef = collection(db, 'teams');
+        const q = query(teamsRef, where('secretCode', '==', normalizedCode));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return null;
+        }
+
+        return querySnapshot.docs[0].data() as Team;
+    } catch (error) {
+        console.error('Error fetching team by secret code:', error);
+        throw error;
+    }
+}
+
+/**
+ * Register a team with member details and secret code
+ */
+export async function registerTeam(
+    teamCode: string,
+    teamMembers: TeamMember[],
+    secretCode: string
+): Promise<{ success: boolean; message: string }> {
+    try {
+        const normalizedTeamCode = normalizeTeamCode(teamCode);
+        const normalizedSecretCode = normalizeSecretCode(secretCode);
+
+        // Validate secret code format
+        if (!validateSecretCode(normalizedSecretCode)) {
+            return {
+                success: false,
+                message: 'Secret code must be 4 digits followed by 1 letter (e.g., 1234A)'
+            };
+        }
+
+        // Check if team exists
+        const team = await getTeamByCode(normalizedTeamCode);
+        if (!team) {
+            return {
+                success: false,
+                message: 'Invalid team code. Please contact the moderator.'
+            };
+        }
+
+        // Check if already registered
+        if (team.isRegistered) {
+            return {
+                success: false,
+                message: 'This team is already registered.'
+            };
+        }
+
+        // Check if secret code is already taken
+        const existingTeam = await getTeamBySecretCode(normalizedSecretCode);
+        if (existingTeam) {
+            return {
+                success: false,
+                message: 'This secret code is already taken. Please choose another.'
+            };
+        }
+
+        // Update team with registration details
+        const teamDocRef = doc(db, 'teams', normalizedTeamCode);
+        await updateDoc(teamDocRef, {
+            secretCode: normalizedSecretCode,
+            teamMembers: teamMembers,
+            isRegistered: true,
+            startTime: new Date().toISOString()
+        });
+
+        return {
+            success: true,
+            message: 'Team registered successfully!'
+        };
+    } catch (error) {
+        console.error('Error registering team:', error);
+        return {
+            success: false,
+            message: 'An error occurred during registration. Please try again.'
+        };
+    }
+}
+
+/**
+ * Validate team scan at a location using secret code
  */
 export async function validateTeamScan(
-    teamCode: string,
+    secretCodeOrTeamCode: string,
     scannedLocation: string
 ): Promise<ValidationResult> {
     try {
-        const normalizedTeamCode = normalizeTeamCode(teamCode);
+        const normalizedInput = secretCodeOrTeamCode.trim().toUpperCase();
         const normalizedScannedLocation = normalizeLocationId(scannedLocation);
 
-        const team = await getTeamByCode(normalizedTeamCode);
+        // Try to find team by secret code first, then fall back to team code
+        let team = await getTeamBySecretCode(normalizedInput);
+        if (!team) {
+            team = await getTeamByCode(normalizedInput);
+        }
 
         if (!team) {
             return {
                 success: false,
-                message: 'Invalid team code. Please check and try again.'
+                message: 'Invalid code. Please check your secret code or contact the moderator.'
+            };
+        }
+
+        // Check if team is registered
+        if (!team.isRegistered) {
+            return {
+                success: false,
+                message: 'Team not registered yet. Please complete registration first.'
             };
         }
 
@@ -195,7 +315,7 @@ export async function validateTeamScan(
 
         // Correct Location Found! Update Team Progress
         const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('teamCode', '==', normalizedTeamCode));
+        const q = query(teamsRef, where('teamCode', '==', team.teamCode));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
