@@ -248,10 +248,13 @@ const ScanPage: React.FC = () => {
                                 </div>
 
                                 <h2
-                                    className={`mb-md ${result.success ? 'result-title--success' : 'result-title--error'}`}
-                                    style={{ fontSize: '1.8rem' }}
+                                    className={`mb-md ${result.success ? 'result-title--success' : result.message.includes('WRONG LOCATION') ? 'result-title--warning' : 'result-title--error'}`}
+                                    style={{
+                                        fontSize: '1.8rem',
+                                        color: result.success ? 'var(--success)' : result.message.includes('WRONG LOCATION') ? 'var(--gold-dark)' : 'var(--error)'
+                                    }}
                                 >
-                                    {result.success ? 'ACCESS GRANTED!' : 'ACCESS DENIED'}
+                                    {result.success ? 'ACCESS GRANTED!' : result.message.includes('WRONG LOCATION') ? 'LOCATION MISMATCH' : 'ACCESS DENIED'}
                                 </h2>
 
                                 <p className="mb-lg" style={{
@@ -288,17 +291,30 @@ const ScanPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                <button
-                                    onClick={() => {
-                                        setResult(null);
-                                        setTeamCode('');
-                                        setShowCurrentClue(false);
-                                    }}
-                                    className="btn btn-secondary w-full"
-                                    style={{ marginTop: 'var(--spacing-lg)' }}
-                                >
-                                    ← Try Another Scan
-                                </button>
+                                <div className="flex flex-col gap-sm mt-lg">
+                                    <button
+                                        onClick={() => {
+                                            setResult(null);
+                                            setTeamCode('');
+                                            setShowCurrentClue(false);
+                                        }}
+                                        className="btn btn-secondary w-full"
+                                    >
+                                        ← Scan Another
+                                    </button>
+
+                                    {!result.success && result.message.includes('WRONG LOCATION') && (
+                                        <button
+                                            onClick={() => {
+                                                setResult(null); // Clear error
+                                                handleFetchCurrentClue(); // Fetch clue
+                                            }}
+                                            className="btn btn-primary w-full"
+                                        >
+                                            📜 Check My Clue
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

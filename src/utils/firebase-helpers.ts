@@ -342,9 +342,43 @@ export async function validateTeamScan(
 
         // Dynamic Check:
         if (!match) {
+            // Check if this location is valid for a DIFFERENT round (Past or Future)
+            const foundRoundIndex = team.route.findIndex(r => {
+                const rLoc = normalizeLocationId(r.locationId);
+                // Exact match
+                if (rLoc === normalizedScannedLocation) return true;
+
+                // Fuzzy Match (LOC_x vs T1_Lx)
+                const rMatch = rLoc.match(/L(\d+)$/);
+                const sMatch = normalizedScannedLocation.match(/LOC_(\d+)$/);
+                if (rMatch && sMatch && rMatch[1] === sMatch[1]) return true;
+
+                // Final Match
+                if (rLoc === 'FINAL_LOC' && (normalizedScannedLocation === 'LOC_4' || normalizedScannedLocation === 'FINAL' || normalizedScannedLocation === 'LOC_FINAL')) return true;
+
+                return false;
+            });
+
+            if (foundRoundIndex !== -1) {
+                const userMsgRound = team.currentRound + 1;
+                const foundMsgRound = foundRoundIndex + 1;
+
+                if (foundRoundIndex < team.currentRound) {
+                    return {
+                        success: false,
+                        message: `⚠️ WRONG LOCATION: You've already visited this spot (Round ${foundMsgRound}). You need to find Round ${userMsgRound}.`
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: `⚠️ WRONG LOCATION: You are at Round ${foundMsgRound}, but you need to find Round ${userMsgRound}. You are skipping ahead!`
+                    };
+                }
+            }
+
             return {
                 success: false,
-                message: `This is not your next location! Keep looking!`,
+                message: `WRONG LOCATION: This is not your next stop! check your clue again.`,
                 team
             };
         }
