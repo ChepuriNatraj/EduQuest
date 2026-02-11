@@ -306,8 +306,38 @@ export async function validateTeamScan(
         const expectedRouteItem = team.route[targetRoundIndex];
         const expectedLocationId = normalizeLocationId(expectedRouteItem.locationId);
 
+        // --- Fuzzy Matching Logic ---
+        // We want to allow "Generic" QRs (LOC_1) to match "Specific" Routes (T1_L1)
+        // providing the round number/index matches.
+
+        let match = false;
+
+        // 1. Direct Match
+        if (normalizedScannedLocation === expectedLocationId) {
+            match = true;
+        }
+        // 2. Final Location Special Case
+        else if (expectedLocationId === 'FINAL_LOC') {
+            // Allow "LOC_4" or "LOC_FINAL" or just "FINAL"
+            if (normalizedScannedLocation === 'LOC_4' || normalizedScannedLocation === 'FINAL' || normalizedScannedLocation === 'LOC_FINAL') {
+                match = true;
+            }
+        }
+        // 3. Suffix/Round Match (e.g., T1_L1 vs LOC_1)
+        else {
+            // Extract the 'L<number>' part
+            const expectedMatch = expectedLocationId.match(/L(\d+)$/);
+            const scannedMatch = normalizedScannedLocation.match(/LOC_(\d+)$/);
+
+            if (expectedMatch && scannedMatch) {
+                if (expectedMatch[1] === scannedMatch[1]) {
+                    match = true;
+                }
+            }
+        }
+
         // Dynamic Check:
-        if (normalizedScannedLocation !== expectedLocationId) {
+        if (!match) {
             return {
                 success: false,
                 message: `This is not your next location! Keep looking!`,

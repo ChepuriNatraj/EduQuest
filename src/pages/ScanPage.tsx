@@ -32,6 +32,17 @@ const ScanPage: React.FC = () => {
         setShowCurrentClue(false);
     }, [locationId, initialCode]);
 
+    // Auto-fetch clue if we arrive with a code (from registration) but no location (Start of game)
+    useEffect(() => {
+        if (initialCode && !locationId) {
+            // Small timeout to allow state to settle and UI to render
+            const timer = setTimeout(() => {
+                handleFetchCurrentClue();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [initialCode, locationId]);
+
     const triggerShake = () => {
         setShake(true);
         setTimeout(() => setShake(false), 500);

@@ -18,6 +18,12 @@ const AdminDashboard: React.FC = () => {
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
     const [editRoute, setEditRoute] = useState<RouteItem[]>([]);
     const [saving, setSaving] = useState(false);
+    const [editTeamName, setEditTeamName] = useState('');
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
+
+    // Notifications Logic
+    const [notifications, setNotifications] = useState<{ id: number, message: string, type: 'success' | 'info' }[]>([]);
+    const prevTeamsRef = React.useRef<Team[]>([]);
 
     useEffect(() => {
         const unsubTeams = subscribeToTeams(setTeams);
@@ -66,6 +72,41 @@ const AdminDashboard: React.FC = () => {
         document.body.removeChild(link);
     };
 
+    // Notifications Helper
+    const addNotification = (message: string, type: 'success' | 'info' = 'info') => {
+        const id = Date.now();
+        setNotifications(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        }, 5000); // Auto dismiss after 5s
+    };
+
+    useEffect(() => {
+        if (prevTeamsRef.current.length === 0) {
+            prevTeamsRef.current = teams;
+            return;
+        }
+
+        teams.forEach(team => {
+            const prevTeam = prevTeamsRef.current.find(t => t.teamCode === team.teamCode);
+            if (!prevTeam) return;
+
+            // Check for Round Completion
+            if (team.currentRound > prevTeam.currentRound) {
+                const isFinished = team.currentRound >= 4; // Assuming 4 rounds
+                if (isFinished) {
+                    addNotification(`🏆 ${team.teamName} has FINISHED the Treasure Hunt!`, 'success');
+                    // Play sound?
+                } else {
+                    addNotification(`🚀 ${team.teamName} completed Round ${team.currentRound} and moved to Round ${team.currentRound + 1}!`, 'info');
+                }
+            }
+        });
+
+        prevTeamsRef.current = teams;
+    }, [teams]);
+
+
     const handleDownloadProgress = () => {
         if (teams.length === 0) {
             alert('No teams yet!');
@@ -99,9 +140,6 @@ const AdminDashboard: React.FC = () => {
         link.click();
         document.body.removeChild(link);
     };
-
-    const [editTeamName, setEditTeamName] = useState('');
-    const [qrPreview, setQrPreview] = useState<string | null>(null);
 
     const openEditModal = (team: Team) => {
         setEditingTeam(team);
@@ -345,6 +383,20 @@ const AdminDashboard: React.FC = () => {
                     )}
 
                     <div className="modal-footer flex gap-md justify-end">
+                        <div className="flex gap-sm items-center">
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm("WARNING: This will RESET all 15 teams to their initial state. Scans will be lost. Are you sure?")) {
+                                        await initializeTeams(15);
+                                        alert("Teams reset successfully! Please refresh.");
+                                    }
+                                }}
+                                className="btn btn-primary"
+                                style={{ background: 'var(--error)', borderColor: 'var(--brown-darkest)' }}
+                            >
+                                ⚠️ Reset All Teams
+                            </button>
+                        </div>
                         <button
                             onClick={() => {
                                 setEditingTeam(null);
@@ -498,6 +550,38 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'teams' && renderTeams()}
             {activeTab === 'registrations' && renderRegistrations()}
             {activeTab === 'qr' && <QRGenerator />}
+            {/* Notification Toast Container */}
+            <div style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+            }}>
+                {notifications.map(n => (
+                    <div key={n.id} className="card fade-in" style={{
+                        background: n.type === 'success' ? 'var(--success)' : 'var(--gold-dark)',
+                        color: 'white',
+                        padding: '1rem',
+                        minWidth: '300px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        border: 'none'
+                    }}>
+                        <div className="flex justify-between items-start">
+                            <span>{n.message}</span>
+                            <button
+                                onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))}
+                                style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', marginLeft: '10px' }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {renderEditModal()}
         </div>
     );
