@@ -156,11 +156,19 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {teams.length === 0 ? (
-                <div className="card text-center p-lg">
-                    <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📋</div>
-                    <h3 className="mb-sm">No Teams Found</h3>
-                    <p className="text-muted mb-md">Click "Initialize 15 Teams" to get started</p>
-                </div>
+                <>
+                    <Link to="/print-codes" className="card hover-lift" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>🖨️</div>
+                        <h3>Print Riddles</h3>
+                        <p className="text-sm text-muted">Print riddles and QR codes for all teams</p>
+                    </Link>
+
+                    <Link to="/print-stickers" className="card hover-lift" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>🏷️</div>
+                        <h3>Print Stickers</h3>
+                        <p className="text-sm text-muted">Compact 4-per-row QRs for sticker sheets</p>
+                    </Link>
+                </>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-md">
                     {teams.map(team => {
@@ -483,8 +491,11 @@ const AdminDashboard: React.FC = () => {
                     >
                         📱 Generate QR
                     </button>
-                    <Link to="/print-codes" className="btn btn-warning" target="_blank">
-                        🖨️ Print All Codes
+                    <Link to="/print-codes" className="btn btn-warning" target="_blank" style={{ marginRight: '5px' }}>
+                        🖨️ Print Riddles
+                    </Link>
+                    <Link to="/print-stickers" className="btn btn-info" target="_blank" style={{ background: '#17a2b8', color: 'white', border: 'none' }}>
+                        🏷️ Print Stickers
                     </Link>
                 </div>
             </div>

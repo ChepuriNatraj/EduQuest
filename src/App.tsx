@@ -4,6 +4,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './layout/AdminLayout';
 import RegistrationPage from './pages/RegistrationPage';
 import PrintableCodes from './pages/PrintableCodes';
+import PrintableStickers from './pages/PrintableStickers';
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                 <Route element={<AdminLayout />}>
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/print-codes" element={<PrintableCodes />} />
+                    <Route path="/print-stickers" element={<PrintableStickers />} />
                 </Route>
             </Routes>
         </Router>
