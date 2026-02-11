@@ -10,6 +10,7 @@ import {
 import { doc, updateDoc } from 'firebase/firestore';
 import QRGenerator from '../components/QRGenerator';
 import QRCode from 'react-qr-code';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
     const [teams, setTeams] = useState<Team[]>([]);
@@ -31,7 +32,7 @@ const AdminDashboard: React.FC = () => {
 
     const handleDownloadRegistrations = () => {
         const registeredTeams = teams.filter(t => t.isRegistered);
-        
+
         if (registeredTeams.length === 0) {
             alert('No registered teams yet!');
             return;
@@ -39,7 +40,7 @@ const AdminDashboard: React.FC = () => {
 
         // Create CSV content
         let csv = 'Team Code,Secret Code,Member 1 Name,Member 1 Mobile,Member 1 Branch,Member 1 Year,Member 2 Name,Member 2 Mobile,Member 2 Branch,Member 2 Year,Member 3 Name,Member 3 Mobile,Member 3 Branch,Member 3 Year,Member 4 Name,Member 4 Mobile,Member 4 Branch,Member 4 Year,Member 5 Name,Member 5 Mobile,Member 5 Branch,Member 5 Year,Registration Time,Current Round,Completed\n';
-        
+
         registeredTeams.forEach(team => {
             const members = team.teamMembers || [];
             const row = [
@@ -73,7 +74,7 @@ const AdminDashboard: React.FC = () => {
 
         // Create CSV content
         let csv = 'Team Code,Team Name,Secret Code,Current Round,Completed,Completion Time,Total Scans\n';
-        
+
         teams.forEach(team => {
             const row = [
                 team.teamCode,
@@ -166,7 +167,7 @@ const AdminDashboard: React.FC = () => {
                         const completedRounds = team.currentRound;
                         const isComplete = completedRounds >= 4;
                         const progressPercent = Math.min((completedRounds / 4) * 100, 100);
-                        
+
                         return (
                             <div key={team.teamCode} className="card" style={{ padding: 'var(--spacing-md)' }}>
                                 <div className="flex justify-between items-start mb-sm">
@@ -217,8 +218,8 @@ const AdminDashboard: React.FC = () => {
 
         return (
             <div className="modal-overlay" onClick={() => !saving && setEditingTeam(null)}>
-                <div 
-                    className="modal-content card fade-in" 
+                <div
+                    className="modal-content card fade-in"
                     onClick={(e) => e.stopPropagation()}
                     style={{ maxWidth: '1000px' }}
                 >
@@ -277,7 +278,7 @@ const AdminDashboard: React.FC = () => {
                                                 <option key={loc} value={loc}>{loc}</option>
                                             ))}
                                         </select>
-                                        
+
                                         {/* Inline QR Preview Button */}
                                         {item.locationId && (
                                             <button
@@ -315,9 +316,9 @@ const AdminDashboard: React.FC = () => {
                     {qrPreview && (
                         <div className="notice mb-lg" style={{ textAlign: 'center' }}>
                             <h4 className="mb-sm notice-title">QR Code Preview: {qrPreview}</h4>
-                            <div style={{ 
-                                background: 'white', 
-                                padding: 'var(--spacing-md)', 
+                            <div style={{
+                                background: 'white',
+                                padding: 'var(--spacing-md)',
                                 borderRadius: 'var(--radius-md)',
                                 display: 'inline-block'
                             }}>
@@ -482,6 +483,9 @@ const AdminDashboard: React.FC = () => {
                     >
                         📱 Generate QR
                     </button>
+                    <Link to="/print-codes" className="btn btn-warning" target="_blank">
+                        🖨️ Print All Codes
+                    </Link>
                 </div>
             </div>
 

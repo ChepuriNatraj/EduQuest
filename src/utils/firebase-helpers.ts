@@ -10,6 +10,8 @@ import {
     arrayUnion,
     onSnapshot
 } from 'firebase/firestore';
+// @ts-ignore
+import { sampleTeams } from '../../sample-data';
 import { db } from '../config/firebase-config';
 
 export { db }; // Export db for use in components
@@ -411,26 +413,47 @@ export async function getAllTeams(): Promise<Team[]> {
 export async function initializeTeams(count: number = 15) {
     const teamsRef = collection(db, 'teams');
 
-    for (let i = 1; i <= count; i++) {
-        const teamCode = `TEAM${i.toString().padStart(3, '0')}`; // TEAM001
-        const docRef = doc(teamsRef, teamCode);
+    // Use sampleTeams data if available, otherwise fallback to generic
+    const sourceData = sampleTeams && sampleTeams.length > 0 ? sampleTeams : [];
 
-        // checking existence would be good, but for "Init", we might want to ensure they exist via setDoc with merge
-        await setDoc(docRef, {
-            teamCode: teamCode,
-            teamName: `Team ${i}`,
-            currentRound: 0,
-            route: [
-                { round: 1, locationId: `LOC_1`, riddle: "Your first clue will appear here..." },
-                { round: 2, locationId: `LOC_2`, riddle: "Your second clue will appear here..." },
-                { round: 3, locationId: `LOC_3`, riddle: "Your third clue will appear here..." },
-                { round: 4, locationId: `LOC_4`, riddle: "Final clue - find the treasure!" }
-            ],
-            scans: [],
-            startTime: new Date().toISOString(),
-            completedAt: null,
-            isRegistered: false
-        }, { merge: true });
+    // Validating count against source data length if needed, but for now let's just use sourceData
+    // or strictly up to 'count' if we want to limit it. 
+    // Let's just iterate through the sourceData or up to count.
+
+    const limit = Math.min(count, sourceData.length > 0 ? sourceData.length : count);
+
+    for (let i = 0; i < limit; i++) {
+        let teamData;
+
+        if (sourceData.length > 0) {
+            teamData = { ...sourceData[i] };
+        } else {
+            // Fallback generic data
+            const teamNum = i + 1;
+            const teamCode = `TEAM${teamNum.toString().padStart(3, '0')}`;
+            teamData = {
+                teamCode: teamCode,
+                teamName: `Team ${teamNum}`,
+                currentRound: 0,
+                route: [
+                    { round: 1, locationId: `LOC_1`, riddle: "Your first clue will appear here..." },
+                    { round: 2, locationId: `LOC_2`, riddle: "Your second clue will appear here..." },
+                    { round: 3, locationId: `LOC_3`, riddle: "Your third clue will appear here..." },
+                    { round: 4, locationId: `LOC_4`, riddle: "Final clue - find the treasure!" }
+                ],
+                scans: [],
+                startTime: new Date().toISOString(),
+                completedAt: null
+            };
+        }
+
+        // Ensure defaults
+        if (!teamData.isRegistered) teamData.isRegistered = false;
+        if (!teamData.scans) teamData.scans = [];
+        if (!teamData.startTime) teamData.startTime = new Date().toISOString();
+
+        const docRef = doc(teamsRef, teamData.teamCode);
+        await setDoc(docRef, teamData, { merge: true });
     }
 }
 

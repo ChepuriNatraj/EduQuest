@@ -3,6 +3,7 @@ import ScanPage from './pages/ScanPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './layout/AdminLayout';
 import RegistrationPage from './pages/RegistrationPage';
+import PrintableCodes from './pages/PrintableCodes';
 
 function App() {
     return (
@@ -13,6 +14,7 @@ function App() {
                 <Route path="/scan" element={<ScanPage />} />
                 <Route element={<AdminLayout />}>
                     <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/print-codes" element={<PrintableCodes />} />
                 </Route>
             </Routes>
         </Router>
