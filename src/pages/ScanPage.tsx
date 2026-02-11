@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { validateTeamScan, getTeamByCode } from '../utils/firebase-helpers';
+import { validateTeamScan, getTeamByCode, subscribeToEventState, EventState } from '../utils/firebase-helpers';
 import InstructionsModal from '../components/InstructionsModal';
 
 const ScanPage: React.FC = () => {
@@ -14,6 +14,7 @@ const ScanPage: React.FC = () => {
     const [showCurrentClue, setShowCurrentClue] = useState(false);
     const [currentClueText, setCurrentClueText] = useState<string>('');
     const [showInstructions, setShowInstructions] = useState(false);
+    const [eventState, setEventState] = useState<EventState | null>(null);
 
     const [result, setResult] = useState<{
         success: boolean;
@@ -31,14 +32,18 @@ const ScanPage: React.FC = () => {
         setShowCurrentClue(false);
     }, [locationId, initialCode]);
 
-    // Auto-fetch clue if we arrive with a code (from registration) but no location (Start of game)
+    // Subscribe to Event State
+    useEffect(() => {
+        const unsubscribe = subscribeToEventState((state) => {
+            setEventState(state);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    // Auto-open instructions if new user and no location scan
     useEffect(() => {
         if (initialCode && !locationId) {
-            // Small timeout to allow state to settle and UI to render
-            const timer = setTimeout(() => {
-                handleFetchCurrentClue();
-            }, 500);
-            return () => clearTimeout(timer);
+            setShowInstructions(true);
         }
     }, [initialCode, locationId]);
 
@@ -199,10 +204,16 @@ const ScanPage: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={handleFetchCurrentClue}
-                                        className="btn btn-secondary w-full"
-                                        disabled={loading}
+                                        className={`btn w-full ${eventState?.status === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+                                        disabled={loading || eventState?.status !== 'active'}
+                                        style={{
+                                            opacity: eventState?.status === 'active' ? 1 : 0.7,
+                                            cursor: eventState?.status === 'active' ? 'pointer' : 'not-allowed'
+                                        }}
                                     >
-                                        📜 Show Current Clue
+                                        {eventState?.status === 'active'
+                                            ? '📜 Show Current Clue'
+                                            : '⏳ Waiting for Event Start...'}
                                     </button>
 
                                     <button
@@ -316,16 +327,60 @@ const ScanPage: React.FC = () => {
                     )}
 
                     {!locationId && (
-                        <div className="text-center" style={{ padding: 'var(--spacing-xl)', color: 'var(--brown-light)' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📷</div>
-                            <h2 className="mb-md">No Location Scanned</h2>
-                            <p>Please scan a QR code to begin your treasure hunt adventure!</p>
-                            <button
-                                onClick={() => setShowInstructions(true)}
-                                className="btn btn-primary mt-lg"
-                            >
-                                Read Instructions
-                            </button>
+                        <div className="text-center" style={{ padding: 'var(--spacing-lg) var(--spacing-md)' }}>
+                            {teamCode ? (
+                                <>
+                                    <h2 className="mb-md" style={{ color: 'var(--brown-darkest)' }}>Ready for Adventure?</h2>
+
+                                    <div className={`badge ${eventState?.status === 'active' ? 'badge-success' : 'badge-warning'}`} style={{ marginBottom: 'var(--spacing-md)', fontSize: '1rem', width: '100%', justifyContent: 'center' }}>
+                                        {eventState?.status === 'active' ? '🟢 EVENT IS LIVE' : '🔴 EVENT NOT STARTED'}
+                                    </div>
+
+                                    <p className="mb-lg" style={{ color: 'var(--brown-dark)', fontSize: '1.1rem' }}>
+                                        {eventState?.status === 'active'
+                                            ? "The hunt is on! Read instructions and start."
+                                            : "Please wait for the admin to start the event."}
+                                    </p>
+
+                                    <div className="flex flex-col gap-md">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowInstructions(true)}
+                                            className="btn btn-secondary w-full"
+                                            style={{ fontSize: '1.1rem' }}
+                                        >
+                                            📖 Read Instructions
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleFetchCurrentClue}
+                                            className={`btn w-full ${eventState?.status === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+                                            disabled={loading || eventState?.status !== 'active'}
+                                            style={{
+                                                fontSize: '1.2rem',
+                                                padding: '1rem',
+                                                opacity: eventState?.status === 'active' ? 1 : 0.6,
+                                                cursor: eventState?.status === 'active' ? 'pointer' : 'not-allowed'
+                                            }}
+                                        >
+                                            {loading ? '⏳ Loading...' : eventState?.status === 'active' ? '🚀 START ADVENTURE!' : '⏳ Waiting for Start...'}
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📷</div>
+                                    <h2 className="mb-md">No Location Scanned</h2>
+                                    <p className="mb-lg" style={{ color: 'var(--brown-light)' }}>Please scan a QR code to begin your treasure hunt adventure!</p>
+                                    <button
+                                        onClick={() => setShowInstructions(true)}
+                                        className="btn btn-secondary w-full"
+                                    >
+                                        Read Instructions
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

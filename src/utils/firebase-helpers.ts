@@ -192,6 +192,20 @@ export async function isEventActive(): Promise<boolean> {
     return state.status === 'active';
 }
 
+/**
+ * Subscribe to event state changes
+ */
+export function subscribeToEventState(callback: (state: EventState | null) => void): () => void {
+    const docRef = doc(db, 'event_state', 'current');
+    return onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            callback(docSnap.data() as EventState);
+        } else {
+            callback(null);
+        }
+    });
+}
+
 // ==========================================
 // TEAM FUNCTIONS
 // ==========================================
