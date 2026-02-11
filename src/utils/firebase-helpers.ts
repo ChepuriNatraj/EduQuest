@@ -227,7 +227,11 @@ export async function registerTeam(
             secretCode: normalizedSecretCode,
             teamMembers: teamMembers,
             isRegistered: true,
-            startTime: new Date().toISOString()
+            startTime: new Date().toISOString(),
+            // Reset game progress on new registration
+            currentRound: 0,
+            scans: [],
+            completedAt: null
         });
 
         return {
