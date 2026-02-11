@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { validateTeamScan, getTeamByCode, Location, db } from '../utils/firebase-helpers';
 import { doc, getDoc } from 'firebase/firestore';
+import InstructionsModal from '../components/InstructionsModal';
 
 const ScanPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const locationId = searchParams.get('loc');
+    const initialCode = searchParams.get('code') || '';
 
-    const [teamCode, setTeamCode] = useState('');
+    const [teamCode, setTeamCode] = useState(initialCode);
     const [loading, setLoading] = useState(false);
     const [shake, setShake] = useState(false);
     const [showCurrentClue, setShowCurrentClue] = useState(false);
     const [currentClueText, setCurrentClueText] = useState<string>('');
+    const [showInstructions, setShowInstructions] = useState(false);
 
     const [result, setResult] = useState<{
         success: boolean;
@@ -22,9 +25,12 @@ const ScanPage: React.FC = () => {
 
     useEffect(() => {
         setResult(null);
-        setTeamCode('');
+        // Only reset if we didn't just arrive with a code
+        if (!initialCode) {
+            setTeamCode('');
+        }
         setShowCurrentClue(false);
-    }, [locationId]);
+    }, [locationId, initialCode]);
 
     const triggerShake = () => {
         setShake(true);
@@ -144,148 +150,165 @@ const ScanPage: React.FC = () => {
                         <h1 className="gradient-text mb-sm">Treasure Hunt</h1>
                     </div>
 
-                {locationId && (
-                    <div className="badge badge-warning" style={{ marginBottom: 'var(--spacing-md)' }}>
-                        📍 Location: {locationId.toUpperCase()}
-                    </div>
-                )}
+                    {locationId && (
+                        <div className="badge badge-warning" style={{ marginBottom: 'var(--spacing-md)' }}>
+                            📍 Location: {locationId.toUpperCase()}
+                        </div>
+                    )}
 
-                {/* Main Content */}
-                {!result && locationId && (
-                    <div className="scan-form">
-                        <p className="text-center mb-lg" style={{ fontSize: '1.05rem', color: 'var(--brown-dark)' }}>
-                            Enter your <strong>Secret Code</strong> to verify this checkpoint
-                        </p>
+                    {/* Main Content */}
+                    {!result && locationId && (
+                        <div className="scan-form">
+                            <p className="text-center mb-lg" style={{ fontSize: '1.05rem', color: 'var(--brown-dark)' }}>
+                                Enter your <strong>Secret Code</strong> to verify this checkpoint
+                            </p>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label htmlFor="teamCode">Secret Code (4 digits + 1 letter)</label>
-                                <input
-                                    id="teamCode"
-                                    type="text"
-                                    className="input"
-                                    value={teamCode}
-                                    onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                                    placeholder="e.g. 1234A"
-                                    maxLength={5}
-                                    disabled={loading}
-                                    required
-                                    style={{ fontSize: '1.5rem', textAlign: 'center', letterSpacing: '0.2em' }}
-                                />
+                            <form onSubmit={handleSubmit}>
+                                <div className="form-group">
+                                    <label htmlFor="teamCode">Secret Code (4 digits + 1 letter)</label>
+                                    <input
+                                        id="teamCode"
+                                        type="text"
+                                        className="input"
+                                        value={teamCode}
+                                        onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+                                        placeholder="e.g. 1234A"
+                                        maxLength={5}
+                                        disabled={loading}
+                                        required
+                                        style={{ fontSize: '1.5rem', textAlign: 'center', letterSpacing: '0.2em' }}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-sm">
+                                    <button
+                                        type="submit"
+                                        className="btn btn-primary w-full"
+                                        disabled={loading}
+                                    >
+                                        {loading ? '⏳ Validating...' : '✓ Verify Location'}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleFetchCurrentClue}
+                                        className="btn btn-secondary w-full"
+                                        disabled={loading}
+                                    >
+                                        📜 Show Current Clue
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowInstructions(true)}
+                                        className="btn btn-info w-full"
+                                        style={{ background: 'var(--map-blue)', color: 'white', border: 'none' }}
+                                    >
+                                        ℹ️ How to Play
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div className="notice" style={{ marginTop: 'var(--spacing-lg)' }}>
+                                <p className="text-sm text-center" style={{ marginBottom: 0 }}>
+                                    📞 <strong>Forgot your code?</strong><br />
+                                    Call Moderator: <a href="tel:8309223139" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>8309223139</a> or <a href="tel:8309302507" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>8309302507</a>
+                                </p>
                             </div>
+                        </div>
+                    )}
 
-                            <div className="flex flex-col gap-sm">
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary w-full"
-                                    disabled={loading}
-                                >
-                                    {loading ? '⏳ Validating...' : '✓ Verify Location'}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleFetchCurrentClue}
-                                    className="btn btn-secondary w-full"
-                                    disabled={loading}
-                                >
-                                    📜 Show Current Clue
-                                </button>
-                            </div>
-                        </form>
-
-                        <div className="notice" style={{ marginTop: 'var(--spacing-lg)' }}>
-                            <p className="text-sm text-center" style={{ marginBottom: 0 }}>
-                                📞 <strong>Forgot your code?</strong><br />
-                                Call Moderator: <a href="tel:8309223139" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>8309223139</a> or <a href="tel:8309302507" style={{ color: 'var(--gold-dark)', fontWeight: 'bold' }}>8309302507</a>
+                    {/* Current Clue Display */}
+                    {showCurrentClue && !result && (
+                        <div className="notice fade-in" style={{ marginTop: 'var(--spacing-lg)' }}>
+                            <h3 className="notice-title text-center mb-md">📜 Your Current Clue</h3>
+                            <p className="notice-body text-center" style={{ marginBottom: 0 }}>
+                                "{currentClueText}"
                             </p>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Current Clue Display */}
-                {showCurrentClue && !result && (
-                    <div className="notice fade-in" style={{ marginTop: 'var(--spacing-lg)' }}>
-                        <h3 className="notice-title text-center mb-md">📜 Your Current Clue</h3>
-                        <p className="notice-body text-center" style={{ marginBottom: 0 }}>
-                            "{currentClueText}"
-                        </p>
-                    </div>
-                )}
-
-                {/* Result Display */}
-                {result && (
-                    <div className={`result-display fade-in ${result.success ? 'bounce' : ''}`}>
-                        <div className={`result-box ${result.success ? 'result-box--success' : 'result-box--error'}`}>
-                            <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>
-                                {result.success ? '✅' : '❌'}
-                            </div>
-
-                            <h2
-                                className={`mb-md ${result.success ? 'result-title--success' : 'result-title--error'}`}
-                                style={{ fontSize: '1.8rem' }}
-                            >
-                                {result.success ? 'ACCESS GRANTED!' : 'ACCESS DENIED'}
-                            </h2>
-
-                            <p className="mb-lg" style={{
-                                fontSize: '1.1rem',
-                                color: 'var(--brown-dark)',
-                                lineHeight: 1.7
-                            }}>
-                                {result.message}
-                            </p>
-
-                            {result.success && result.riddle && !result.isCompleted && (
-                                <div className="notice" style={{ marginTop: 'var(--spacing-lg)' }}>
-                                    <h3 className="mb-sm notice-title">
-                                        🗝️ Next Clue
-                                    </h3>
-                                    <p className="notice-body" style={{ marginBottom: 0 }}>
-                                        "{result.riddle}"
-                                    </p>
+                    {/* Result Display */}
+                    {result && (
+                        <div className={`result-display fade-in ${result.success ? 'bounce' : ''}`}>
+                            <div className={`result-box ${result.success ? 'result-box--success' : 'result-box--error'}`}>
+                                <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>
+                                    {result.success ? '✅' : '❌'}
                                 </div>
-                            )}
 
-                            {result.isCompleted && (
-                                <div className="completion-celebration" style={{
-                                    marginTop: 'var(--spacing-lg)',
-                                    padding: 'var(--spacing-md)',
-                                    background: 'linear-gradient(135deg, var(--gold-bright), var(--gold-dark))',
-                                    borderRadius: 'var(--radius-md)',
-                                    color: 'var(--brown-darkest)'
+                                <h2
+                                    className={`mb-md ${result.success ? 'result-title--success' : 'result-title--error'}`}
+                                    style={{ fontSize: '1.8rem' }}
+                                >
+                                    {result.success ? 'ACCESS GRANTED!' : 'ACCESS DENIED'}
+                                </h2>
+
+                                <p className="mb-lg" style={{
+                                    fontSize: '1.1rem',
+                                    color: 'var(--brown-dark)',
+                                    lineHeight: 1.7
                                 }}>
-                                    <div style={{ fontSize: '3rem' }}>🏆</div>
-                                    <h3 style={{ fontWeight: 'bold', marginTop: 'var(--spacing-sm)' }}>
-                                        TREASURE FOUND!
-                                    </h3>
-                                </div>
-                            )}
+                                    {result.message}
+                                </p>
 
+                                {result.success && result.riddle && !result.isCompleted && (
+                                    <div className="notice" style={{ marginTop: 'var(--spacing-lg)' }}>
+                                        <h3 className="mb-sm notice-title">
+                                            🗝️ Next Clue
+                                        </h3>
+                                        <p className="notice-body" style={{ marginBottom: 0 }}>
+                                            "{result.riddle}"
+                                        </p>
+                                    </div>
+                                )}
+
+                                {result.isCompleted && (
+                                    <div className="completion-celebration" style={{
+                                        marginTop: 'var(--spacing-lg)',
+                                        padding: 'var(--spacing-md)',
+                                        background: 'linear-gradient(135deg, var(--gold-bright), var(--gold-dark))',
+                                        borderRadius: 'var(--radius-md)',
+                                        color: 'var(--brown-darkest)'
+                                    }}>
+                                        <div style={{ fontSize: '3rem' }}>🏆</div>
+                                        <h3 style={{ fontWeight: 'bold', marginTop: 'var(--spacing-sm)' }}>
+                                            TREASURE FOUND!
+                                        </h3>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => {
+                                        setResult(null);
+                                        setTeamCode('');
+                                        setShowCurrentClue(false);
+                                    }}
+                                    className="btn btn-secondary w-full"
+                                    style={{ marginTop: 'var(--spacing-lg)' }}
+                                >
+                                    ← Try Another Scan
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {!locationId && (
+                        <div className="text-center" style={{ padding: 'var(--spacing-xl)', color: 'var(--brown-light)' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📷</div>
+                            <h2 className="mb-md">No Location Scanned</h2>
+                            <p>Please scan a QR code to begin your treasure hunt adventure!</p>
                             <button
-                                onClick={() => {
-                                    setResult(null);
-                                    setTeamCode('');
-                                    setShowCurrentClue(false);
-                                }}
-                                className="btn btn-secondary w-full"
-                                style={{ marginTop: 'var(--spacing-lg)' }}
+                                onClick={() => setShowInstructions(true)}
+                                className="btn btn-primary mt-lg"
                             >
-                                ← Try Another Scan
+                                Read Instructions
                             </button>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
+            </div>
 
-                {!locationId && (
-                    <div className="text-center" style={{ padding: 'var(--spacing-xl)', color: 'var(--brown-light)' }}>
-                        <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📷</div>
-                        <h2 className="mb-md">No Location Scanned</h2>
-                        <p>Please scan a QR code to begin your treasure hunt adventure!</p>
-                    </div>
-                )}
-            </div>
-            </div>
+            {showInstructions && <InstructionsModal onClose={() => setShowInstructions(false)} />}
         </div>
     );
 };

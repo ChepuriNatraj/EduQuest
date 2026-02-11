@@ -1,23 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
+import { subscribeToTeams, Team } from '../utils/firebase-helpers';
 
 interface QRGeneratorProps {
-    locationId?: string;
     onClose?: () => void;
 }
 
-const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = '', onClose }) => {
-    const [locId, setLocId] = useState(initialLocId);
-    const [qrType, setQrType] = useState<'location' | 'registration'>('location');
-    const [teamCode, setTeamCode] = useState('');
+const QRGenerator: React.FC<QRGeneratorProps> = ({ onClose }) => {
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [selectedTeam, setSelectedTeam] = useState('');
 
-    const locations = Array.from({ length: 12 }, (_, i) => `LOC_${i + 1}`);
+    useEffect(() => {
+        const unsub = subscribeToTeams(setTeams);
+        return () => unsub();
+    }, []);
 
     const handlePrint = () => {
         const printContent = document.getElementById('qr-to-print');
         const win = window.open('', '', 'height=700,width=700');
         if (win && printContent) {
-            win.document.write('<html><head><title>Print QR Code - ' + (qrType === 'registration' ? teamCode : locId) + '</title>');
+            win.document.write('<html><head><title>Print QR Code - ' + selectedTeam + '</title>');
             win.document.write(`
                 <style>
                     @media print {
@@ -49,68 +51,49 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
     };
 
     const baseUrl = window.location.origin;
-    const qrUrl = qrType === 'registration' 
-        ? `${baseUrl}/register?team=${teamCode}`
-        : `${baseUrl}/scan?loc=${locId}`;
-    const displayValue = qrType === 'registration' ? teamCode : locId;
+    const qrUrl = `${baseUrl}/register?team=${selectedTeam}`;
+
+    // Sort teams: Unregistered first, then by name
+    const sortedTeams = [...teams].sort((a, b) => {
+        if (a.isRegistered === b.isRegistered) {
+            return a.teamCode.localeCompare(b.teamCode);
+        }
+        return a.isRegistered ? 1 : -1;
+    });
 
     return (
         <div className="qr-generator-view">
             <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
-                <h2 className="mb-sm text-center">📱 QR Code Generator</h2>
+                <h2 className="mb-sm text-center">📱 Team QR Generator</h2>
                 <p className="text-sm text-muted text-center mb-lg">
-                    Generate QR codes for registration or location checkpoints
+                    Generate registration QR codes for specific teams
                 </p>
 
                 <div className="form-group">
-                    <label htmlFor="qr-type">QR Code Type</label>
+                    <label htmlFor="team-select">Select Team</label>
                     <select
-                        id="qr-type"
+                        id="team-select"
                         className="input"
-                        value={qrType}
-                        onChange={(e) => setQrType(e.target.value as 'location' | 'registration')}
+                        value={selectedTeam}
+                        onChange={(e) => setSelectedTeam(e.target.value)}
                     >
-                        <option value="location">Location Checkpoint</option>
-                        <option value="registration">Team Registration</option>
+                        <option value="">-- Select a Team --</option>
+                        {sortedTeams.map(team => (
+                            <option
+                                key={team.teamCode}
+                                value={team.teamCode}
+                                disabled={team.isRegistered}
+                            >
+                                {team.teamName} ({team.teamCode}) {team.isRegistered ? '✅ Registered' : '⏳ Waiting'}
+                            </option>
+                        ))}
                     </select>
+                    <p className="text-xs text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+                        💡 Only unregistered teams can be selected
+                    </p>
                 </div>
 
-                {qrType === 'registration' ? (
-                    <div className="form-group">
-                        <label htmlFor="team-code">Team Code</label>
-                        <input
-                            id="team-code"
-                            type="text"
-                            value={teamCode}
-                            onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                            className="input"
-                            placeholder="e.g. TEAM001, TEAM002..."
-                        />
-                        <p className="text-xs text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-                            💡 Generate registration QR for initial team sign-up
-                        </p>
-                    </div>
-                ) : (
-                    <div className="form-group">
-                        <label htmlFor="location-id">Location ID</label>
-                        <select
-                            id="location-id"
-                            className="input"
-                            value={locId}
-                            onChange={(e) => setLocId(e.target.value)}
-                        >
-                            <option value="">Select Location</option>
-                            {locations.map(loc => (
-                                <option key={loc} value={loc}>{loc}</option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-                            💡 Choose from 12 fixed location checkpoints (teams enter their secret code on the scan page)
-                        </p>
-                    </div>
-                )}
-
-                {displayValue && (
+                {selectedTeam && (
                     <div
                         id="qr-to-print"
                         className="qr-display fade-in"
@@ -150,7 +133,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                                 fontFamily: "'Cinzel', serif",
                                 letterSpacing: '0.1em'
                             }}>
-                                {displayValue}
+                                {selectedTeam}
                             </p>
                         </div>
                         <p style={{
@@ -159,7 +142,7 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                             color: 'var(--brown-light)',
                             fontStyle: 'italic'
                         }}>
-                            {qrType === 'registration' ? '📝 Scan to register your team' : '🗝️ Scan to unlock the next clue'}
+                            📝 Scan to register as {selectedTeam}
                         </p>
                     </div>
                 )}
@@ -168,10 +151,10 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                     <button
                         onClick={handlePrint}
                         className="btn btn-primary"
-                        disabled={!displayValue}
+                        disabled={!selectedTeam}
                         style={{ flex: 1 }}
                     >
-                        🖨️ Print QR Code
+                        🖨️ Print QR
                     </button>
                     {onClose && (
                         <button onClick={onClose} className="btn btn-secondary">
@@ -179,14 +162,6 @@ const QRGenerator: React.FC<QRGeneratorProps> = ({ locationId: initialLocId = ''
                         </button>
                     )}
                 </div>
-
-                {!displayValue && (
-                    <div className="text-center mt-lg hint-box">
-                        <p className="text-sm text-muted">
-                            ⬆️ Select QR type and enter {qrType === 'registration' ? 'team code' : 'location ID'} above to generate
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );

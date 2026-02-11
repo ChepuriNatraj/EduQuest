@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { registerTeam, TeamMember } from '../utils/firebase-helpers';
+import { registerTeam, TeamMember, getTeamByCode, Team } from '../utils/firebase-helpers';
 
 const RegistrationPage: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -16,6 +16,27 @@ const RegistrationPage: React.FC = () => {
     const [secretCode, setSecretCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [existingTeam, setExistingTeam] = useState<Team | null>(null);
+    const [checkingStatus, setCheckingStatus] = useState(false);
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            if (teamCode) {
+                setCheckingStatus(true);
+                try {
+                    const team = await getTeamByCode(teamCode);
+                    if (team && team.isRegistered) {
+                        setExistingTeam(team);
+                    }
+                } catch (e) {
+                    console.error("Error checking team status", e);
+                } finally {
+                    setCheckingStatus(false);
+                }
+            }
+        };
+        checkStatus();
+    }, [teamCode]);
 
     const handleMemberChange = (index: number, field: keyof TeamMember, value: string) => {
         const updated = [...teamMembers];
@@ -53,6 +74,11 @@ const RegistrationPage: React.FC = () => {
         try {
             const response = await registerTeam(teamCode, teamMembers, secretCode);
             setResult(response);
+
+            // If successful, we can optionally redirect automatically or let the user click the button
+            // The user requested: "when the registration has been done ... it is not accepting the team code that they have just entered"
+            // So we need to ensure the link/button passes the secret code.
+
         } catch (error) {
             setResult({
                 success: false,
@@ -62,6 +88,11 @@ const RegistrationPage: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // Check if valid team code is likely pre-filled
+    // We could add a check here to see if it's already registered, 
+    // but the `registerTeam` function likely handles the backend check. 
+    // However, for better UX, we could fetch the team status on load.
 
     return (
         <div className="page">
@@ -96,7 +127,42 @@ const RegistrationPage: React.FC = () => {
                         </div>
                     )}
 
-                    {!result && (
+                    {checkingStatus && (
+                        <div className="text-center p-md">
+                            <p>Checking registration status...</p>
+                        </div>
+                    )}
+
+                    {existingTeam && !result && (
+                        <div className="card result-box--success mb-lg fade-in">
+                            <div className="text-center">
+                                <h2 className="text-success mb-md" style={{ color: 'var(--success)' }}>
+                                    ✅ Already Registered!
+                                </h2>
+                                <p className="mb-md">
+                                    <strong>{existingTeam.teamName}</strong> ({existingTeam.teamCode}) is already actively participating.
+                                </p>
+                                <div className="notice mb-md">
+                                    <p className="text-sm" style={{ marginBottom: 0 }}>
+                                        <strong>Secret Code: </strong>
+                                        {existingTeam.secretCode ? (
+                                            <span className="code-pill">{existingTeam.secretCode}</span>
+                                        ) : (
+                                            <span className="text-muted">(Hidden)</span>
+                                        )}
+                                    </p>
+                                </div>
+                                <Link
+                                    to={`/scan?loc=LOC_1&code=${existingTeam.secretCode || ''}`}
+                                    className="btn btn-primary w-full"
+                                >
+                                    🚀 Continue Treasure Hunt
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
+                    {!result && !existingTeam && !checkingStatus && (
                         <form onSubmit={handleSubmit}>
                             <div className="divider mb-lg"></div>
 
@@ -181,8 +247,8 @@ const RegistrationPage: React.FC = () => {
 
                             <div className="hint-box mb-md">
                                 <p className="text-sm" style={{ marginBottom: 0 }}>
-                                    <strong>⚠️ Important:</strong> This secret code is for your team only. 
-                                    You'll need it to scan QR codes at each location. 
+                                    <strong>⚠️ Important:</strong> This secret code is for your team only.
+                                    You'll need it to scan QR codes at each location.
                                     Format: 4 digits + 1 letter (e.g., <code className="code-pill">1234A</code>)
                                 </p>
                             </div>
@@ -257,7 +323,10 @@ const RegistrationPage: React.FC = () => {
                             )}
 
                             {result.success ? (
-                                <Link to="/scan?loc=LOC_1" className="btn btn-primary w-full">
+                                <Link
+                                    to={`/scan?loc=LOC_1&code=${secretCode}`}
+                                    className="btn btn-primary w-full"
+                                >
                                     🎯 Start Treasure Hunt
                                 </Link>
                             ) : (
