@@ -262,8 +262,8 @@ const RegistrationPage: React.FC = () => {
                                     value={secretCode}
                                     onChange={(e) => setSecretCode(e.target.value.toUpperCase())}
                                     placeholder="e.g., 123456"
-                                    pattern="[0-9]{4}[A-Z]"
-                                    maxLength={5}
+                                    pattern="\d{6}"
+                                    maxLength={6}
                                     required
                                     disabled={loading}
                                     style={{ fontSize: '1.5rem', textAlign: 'center', letterSpacing: '0.2em' }}
