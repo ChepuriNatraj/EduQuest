@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { validateTeamScan, getTeamByCode, subscribeToEventState, EventState } from '../utils/firebase-helpers';
+import { validateTeamScan, getTeamByCode, getTeamBySecretCode, subscribeToEventState, EventState } from '../utils/firebase-helpers';
 import InstructionsModal from '../components/InstructionsModal';
 
 const ScanPage: React.FC = () => {
@@ -61,7 +61,12 @@ const ScanPage: React.FC = () => {
 
         setLoading(true);
         try {
-            const team = await getTeamByCode(teamCode);
+            // Try by secret code first (most common), then by team code
+            let team = await getTeamBySecretCode(teamCode);
+            if (!team) {
+                team = await getTeamByCode(teamCode);
+            }
+
             if (!team) {
                 alert("Invalid Secret Code");
                 setLoading(false);
