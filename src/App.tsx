@@ -51,7 +51,7 @@ function HomePage() {
                         <p className="brand-subtitle mb-lg">Welcome to the treasure hunt platform</p>
                     </div>
 
-                    <div className="stack mb-lg">
+                    <div className="stack gap-md mb-lg">
                         <Link to="/scan?loc=TEST" className="btn btn-primary">
                             🔍 Scan QR Code (Test)
                         </Link>

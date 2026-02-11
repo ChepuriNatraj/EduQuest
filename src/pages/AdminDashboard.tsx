@@ -253,12 +253,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="divider mb-md"></div>
 
                     {/* Compact 2-Column Grid for All 4 Rounds */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: 'var(--spacing-md)',
-                        marginBottom: 'var(--spacing-lg)'
-                    }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mb-lg">
                         {editRoute.map((item, idx) => (
                             <div
                                 key={idx}
@@ -472,7 +467,7 @@ const AdminDashboard: React.FC = () => {
                 <h1 className="gradient-text mb-sm text-center">🎮 Game Master</h1>
                 <p className="text-muted mb-md text-center">Manage teams, riddles, and QR codes for the treasure hunt</p>
 
-                <div className="tabs flex gap-sm">
+                <div className="tabs flex gap-sm" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button
                         className={`btn ${activeTab === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('teams')}
