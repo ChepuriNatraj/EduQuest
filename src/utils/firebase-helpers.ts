@@ -101,7 +101,7 @@ function normalizeTeamCode(input: string): string {
 
 function validateSecretCode(code: string): boolean {
     const normalized = code.trim().toUpperCase();
-    return /^[0-9]{4}[A-Z]$/.test(normalized);
+    return /^\d{6}$/.test(normalized);
 }
 
 function normalizeSecretCode(code: string): string {
@@ -350,7 +350,7 @@ export async function registerTeam(
         if (!validateSecretCode(normalizedSecretCode)) {
             return {
                 success: false,
-                message: 'Secret code must be 4 digits followed by 1 letter (e.g., 1234A)'
+                message: 'Secret code must be exactly 6 digits (e.g., 123456)'
             };
         }
 

@@ -265,12 +265,13 @@ const ScanPage: React.FC = () => {
                             <div className="form-group mb-lg">
                                 <label className="block text-sm font-bold mb-xs">
                                     🔑 Team Secret Code
-                                    <span className="text-muted font-normal ml-xs">(e.g. 4821)</span>
+                                    <span className="text-muted font-normal ml-xs">(e.g. 123456)</span>
                                 </label>
                                 <input
                                     type="text"
                                     inputMode="numeric"
-                                    placeholder="Enter secret code"
+                                    maxLength={6}
+                                    placeholder="Enter 6-digit code"
                                     value={teamCode}
                                     onChange={(e) => setTeamCode(e.target.value)}
                                     className="w-full p-md border rounded text-lg text-center"

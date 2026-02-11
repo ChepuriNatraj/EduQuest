@@ -61,11 +61,11 @@ const RegistrationPage: React.FC = () => {
         }
 
         // Validate secret code format
-        const codePattern = /^[0-9]{4}[A-Z]$/;
+        const codePattern = /^\d{6}$/;
         if (!codePattern.test(secretCode.toUpperCase())) {
             setResult({
                 success: false,
-                message: 'Secret code must be 4 digits followed by 1 letter (e.g., 1234A)'
+                message: 'Secret code must be exactly 6 digits (e.g., 123456)'
             });
             setLoading(false);
             return;
@@ -249,7 +249,7 @@ const RegistrationPage: React.FC = () => {
                                 <p className="text-sm" style={{ marginBottom: 0 }}>
                                     <strong>⚠️ Important:</strong> This secret code is for your team only.
                                     You'll need it to scan QR codes at each location.
-                                    Format: 4 digits + 1 letter (e.g., <code className="code-pill">1234A</code>)
+                                    Format: exactly 6 digits (e.g., <code className="code-pill">123456</code>)
                                 </p>
                             </div>
 
@@ -261,7 +261,7 @@ const RegistrationPage: React.FC = () => {
                                     className="input"
                                     value={secretCode}
                                     onChange={(e) => setSecretCode(e.target.value.toUpperCase())}
-                                    placeholder="e.g., 1234A"
+                                    placeholder="e.g., 123456"
                                     pattern="[0-9]{4}[A-Z]"
                                     maxLength={5}
                                     required
