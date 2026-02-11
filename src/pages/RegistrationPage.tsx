@@ -153,7 +153,7 @@ const RegistrationPage: React.FC = () => {
                                     </p>
                                 </div>
                                 <Link
-                                    to={`/scan?loc=LOC_1&code=${existingTeam.secretCode || ''}`}
+                                    to={`/scan?code=${existingTeam.secretCode || ''}`}
                                     className="btn btn-primary w-full"
                                 >
                                     🚀 Continue Treasure Hunt
@@ -324,7 +324,7 @@ const RegistrationPage: React.FC = () => {
 
                             {result.success ? (
                                 <Link
-                                    to={`/scan?loc=LOC_1&code=${secretCode}`}
+                                    to={`/scan?code=${secretCode}`}
                                     className="btn btn-primary w-full"
                                 >
                                     🎯 Start Treasure Hunt

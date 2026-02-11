@@ -67,6 +67,13 @@ export interface ValidationResult {
     isCompleted?: boolean;
 }
 
+export interface EventState {
+    id: 'current';
+    status: 'not_started' | 'active' | 'ended';
+    startedAt: string | null;
+    endedAt: string | null;
+}
+
 function normalizeTeamCode(input: string): string {
     const cleaned = (input || '')
         .trim()
@@ -120,6 +127,69 @@ function normalizeLocationId(input: string): string {
     }
 
     return cleaned.replace(/-/g, '_');
+}
+
+// ==========================================
+// EVENT STATE MANAGEMENT
+// ==========================================
+
+/**
+ * Get current event state
+ */
+export async function getEventState(): Promise<EventState> {
+    try {
+        const docRef = doc(db, 'event_state', 'current');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return docSnap.data() as EventState;
+        }
+
+        // Default state - event not started
+        const defaultState: EventState = {
+            id: 'current',
+            status: 'not_started',
+            startedAt: null,
+            endedAt: null
+        };
+
+        await setDoc(docRef, defaultState);
+        return defaultState;
+    } catch (error) {
+        console.error('Error fetching event state:', error);
+        // Return default state on error
+        return {
+            id: 'current',
+            status: 'not_started',
+            startedAt: null,
+            endedAt: null
+        };
+    }
+}
+
+/**
+ * Update event state (admin only)
+ */
+export async function updateEventState(
+    status: 'not_started' | 'active' | 'ended'
+): Promise<void> {
+    const updates: Partial<EventState> = { status };
+
+    if (status === 'active') {
+        updates.startedAt = new Date().toISOString();
+    } else if (status === 'ended') {
+        updates.endedAt = new Date().toISOString();
+    }
+
+    await updateDoc(doc(db, 'event_state', 'current'), updates);
+}
+
+/**
+ * Check if event is currently active
+ */
+export async function isEventActive(): Promise<boolean> {
+    const state = await getEventState();
+    return state.status === 'active';
 }
 
 // ==========================================
@@ -255,6 +325,15 @@ export async function validateTeamScan(
     scannedLocation: string
 ): Promise<ValidationResult> {
     try {
+        // Check if event is active
+        const eventActive = await isEventActive();
+        if (!eventActive) {
+            return {
+                success: false,
+                message: '⏸️ Event has not started yet. Please wait for the admin to start the event.'
+            };
+        }
+
         const normalizedInput = secretCodeOrTeamCode.trim().toUpperCase();
         const normalizedScannedLocation = normalizeLocationId(scannedLocation);
 

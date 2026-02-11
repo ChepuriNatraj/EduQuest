@@ -5,6 +5,9 @@ import {
     subscribeToTeams,
     initializeTeams,
     updateTeamRoute,
+    EventState,
+    getEventState,
+    updateEventState,
     db
 } from '../utils/firebase-helpers';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -14,12 +17,14 @@ import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
     const [teams, setTeams] = useState<Team[]>([]);
-    const [activeTab, setActiveTab] = useState<'teams' | 'qr' | 'registrations'>('teams');
+    const [activeTab, setActiveTab] = useState<'teams' | 'questions' | 'qr' | 'registrations'>('teams');
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
     const [editRoute, setEditRoute] = useState<RouteItem[]>([]);
     const [saving, setSaving] = useState(false);
     const [editTeamName, setEditTeamName] = useState('');
     const [qrPreview, setQrPreview] = useState<string | null>(null);
+    const [eventState, setEventState] = useState<EventState | null>(null);
+    const [expandedTeamInQuestions, setExpandedTeamInQuestions] = useState<string | null>(null);
 
     // Notifications Logic
     const [notifications, setNotifications] = useState<{ id: number, message: string, type: 'success' | 'info' }[]>([]);
@@ -27,6 +32,8 @@ const AdminDashboard: React.FC = () => {
 
     useEffect(() => {
         const unsubTeams = subscribeToTeams(setTeams);
+        // Load event state
+        getEventState().then(setEventState);
         return () => unsubTeams();
     }, []);
 
@@ -79,6 +86,25 @@ const AdminDashboard: React.FC = () => {
         setTimeout(() => {
             setNotifications(prev => prev.filter(n => n.id !== id));
         }, 5000); // Auto dismiss after 5s
+    };
+
+    // Event Control Functions
+    const handleStartEvent = async () => {
+        if (confirm('🚀 Start the treasure hunt event? Teams will be able to scan QR codes and play.')) {
+            await updateEventState('active');
+            const newState = await getEventState();
+            setEventState(newState);
+            addNotification('🚀 Event Started! Teams can now play.', 'success');
+        }
+    };
+
+    const handleStopEvent = async () => {
+        if (confirm('🛑 Stop the event? Teams will no longer be able to scan QR codes.')) {
+            await updateEventState('ended');
+            const newState = await getEventState();
+            setEventState(newState);
+            addNotification('🛑 Event Stopped.', 'info');
+        }
     };
 
     useEffect(() => {
@@ -212,7 +238,6 @@ const AdminDashboard: React.FC = () => {
                     {teams.map(team => {
                         const completedRounds = team.currentRound;
                         const isComplete = completedRounds >= 4;
-                        const progressPercent = Math.min((completedRounds / 4) * 100, 100);
 
                         return (
                             <div key={team.teamCode} className="card" style={{ padding: 'var(--spacing-md)' }}>
@@ -231,16 +256,46 @@ const AdminDashboard: React.FC = () => {
                                     </span>
                                 </div>
 
-                                <div className="progress-bar mb-sm">
-                                    <div
-                                        className="progress-fill"
-                                        style={{ width: `${progressPercent}%` }}
-                                    />
-                                </div>
+                                {/* Checklist Progress */}
+                                <div className="progress-checklist mb-sm" style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 'var(--spacing-xs)'
+                                }}>
+                                    {[1, 2, 3, 4].map(round => {
+                                        const completed = team.currentRound >= round;
+                                        const current = team.currentRound + 1 === round;
+                                        const scan = team.scans.find(s => s.round === round);
 
-                                <p className="text-xs text-muted mb-sm">
-                                    {isComplete ? 'All rounds complete!' : `On Round ${completedRounds + 1} of 4`}
-                                </p>
+                                        return (
+                                            <div
+                                                key={round}
+                                                className="checklist-item"
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 'var(--spacing-xs)',
+                                                    padding: 'var(--spacing-xs)',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    background: completed ? 'rgba(40, 167, 69, 0.1)' : current ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                                                    border: current ? '1px solid var(--gold-dark)' : '1px solid transparent'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '1.2rem' }}>
+                                                    {completed ? '✅' : current ? '▶️' : '⬜'}
+                                                </span>
+                                                <span style={{ fontWeight: current ? '600' : '400', flex: 1 }}>
+                                                    Round {round}
+                                                </span>
+                                                {scan && (
+                                                    <span className="text-xs text-muted">
+                                                        {new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
 
                                 <button
                                     onClick={() => openEditModal(team)}
@@ -494,6 +549,79 @@ const AdminDashboard: React.FC = () => {
         );
     };
 
+    const renderQuestions = () => (
+        <div className="questions-view">
+            <div className="flex justify-between items-center mb-lg">
+                <div>
+                    <h2 className="mb-xs">📜 Team Questions & Riddles</h2>
+                    <p className="text-sm text-muted">View all riddles for each team</p>
+                </div>
+            </div>
+
+            {teams.length === 0 ? (
+                <div className="card text-center p-lg">
+                    <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📋</div>
+                    <h3 className="mb-sm">No Teams Yet</h3>
+                    <p className="text-muted">Initialize teams first to view riddles</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-md">
+                    {teams.map(team => (
+                        <div key={team.teamCode} className="card">
+                            <div
+                                className="flex justify-between items-center p-md"
+                                style={{ cursor: 'pointer', borderBottom: expandedTeamInQuestions === team.teamCode ? '2px solid var(--gold-dark)' : 'none' }}
+                                onClick={() => setExpandedTeamInQuestions(
+                                    expandedTeamInQuestions === team.teamCode ? null : team.teamCode
+                                )}
+                            >
+                                <div>
+                                    <h4 className="mb-xs">{team.teamName}</h4>
+                                    <p className="text-xs text-muted">{team.teamCode}</p>
+                                </div>
+                                <div className="flex items-center gap-sm">
+                                    <span className={`badge ${team.isRegistered ? 'badge-success' : 'badge-warning'}`}>
+                                        {team.isRegistered ? '✅ Registered' : '⏳ Pending'}
+                                    </span>
+                                    <span style={{ fontSize: '1.2rem' }}>
+                                        {expandedTeamInQuestions === team.teamCode ? '▼' : '▶'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {expandedTeamInQuestions === team.teamCode && (
+                                <div className="p-md" style={{ background: 'rgba(212, 175, 55, 0.03)' }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                                        {team.route && team.route.map((routeItem, idx) => (
+                                            <div key={idx} className="panel panel-tight">
+                                                <div className="flex justify-between items-center mb-sm">
+                                                    <h5 style={{ color: 'var(--gold-dark)', margin: 0 }}>
+                                                        🔹 Round {routeItem.round}
+                                                    </h5>
+                                                    <span className="text-xs text-muted">{routeItem.locationId}</span>
+                                                </div>
+                                                <p style={{
+                                                    fontStyle: 'italic',
+                                                    color: 'var(--brown-dark)',
+                                                    fontSize: '0.95rem',
+                                                    lineHeight: '1.5',
+                                                    marginBottom: 0,
+                                                    whiteSpace: 'pre-wrap'
+                                                }}>
+                                                    "{routeItem.riddle}"
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <div className="container" style={{ paddingTop: 'var(--spacing-xl)', paddingBottom: 'var(--spacing-xl)' }}>
             {/* Three Logo Display */}
@@ -519,12 +647,65 @@ const AdminDashboard: React.FC = () => {
                 <h1 className="gradient-text mb-sm text-center">🎮 Game Master</h1>
                 <p className="text-muted mb-md text-center">Manage teams, riddles, and QR codes for the treasure hunt</p>
 
+                {/* Event Control Panel */}
+                <div className="card mb-lg" style={{
+                    background: eventState?.status === 'active'
+                        ? 'linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05))'
+                        : 'linear-gradient(135deg, rgba(108, 117, 125, 0.1), rgba(108, 117, 125, 0.05))',
+                    borderColor: eventState?.status === 'active' ? 'var(--success)' : 'var(--brown-medium)'
+                }}>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="mb-xs" style={{ fontSize: '1.2rem' }}>🎮 Event Control</h3>
+                            <p className="text-sm text-muted mb-xs">
+                                Status: <strong style={{
+                                    color: eventState?.status === 'active' ? 'var(--success)' :
+                                        eventState?.status === 'ended' ? 'var(--error)' : 'var(--brown-medium)'
+                                }}>
+                                    {eventState?.status === 'active' ? '🟢 ACTIVE' :
+                                        eventState?.status === 'ended' ? '🔴 ENDED' : '⚫ NOT STARTED'}
+                                </strong>
+                            </p>
+                            {eventState?.startedAt && (
+                                <p className="text-xs text-muted" style={{ marginBottom: 0 }}>
+                                    Started: {new Date(eventState.startedAt).toLocaleString()}
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex gap-sm">
+                            {eventState?.status !== 'active' ? (
+                                <button
+                                    onClick={handleStartEvent}
+                                    className="btn btn-primary"
+                                    style={{ background: 'var(--success)', borderColor: 'var(--success)' }}
+                                >
+                                    🚀 Start Event
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleStopEvent}
+                                    className="btn btn-primary"
+                                    style={{ background: 'var(--error)', borderColor: 'var(--error)' }}
+                                >
+                                    🛑 Stop Event
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="tabs flex gap-sm" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button
                         className={`btn ${activeTab === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('teams')}
                     >
                         👥 Teams & Riddles
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'questions' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setActiveTab('questions')}
+                    >
+                        📜 Questions
                     </button>
                     <button
                         className={`btn ${activeTab === 'registrations' ? 'btn-primary' : 'btn-secondary'}`}
@@ -548,6 +729,7 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {activeTab === 'teams' && renderTeams()}
+            {activeTab === 'questions' && renderQuestions()}
             {activeTab === 'registrations' && renderRegistrations()}
             {activeTab === 'qr' && <QRGenerator />}
             {/* Notification Toast Container */}

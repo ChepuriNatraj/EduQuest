@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { validateTeamScan, getTeamByCode, Location, db } from '../utils/firebase-helpers';
-import { doc, getDoc } from 'firebase/firestore';
+import { validateTeamScan, getTeamByCode } from '../utils/firebase-helpers';
 import InstructionsModal from '../components/InstructionsModal';
 
 const ScanPage: React.FC = () => {
@@ -51,7 +50,7 @@ const ScanPage: React.FC = () => {
     const handleFetchCurrentClue = async () => {
         if (!teamCode.trim()) {
             triggerShake();
-            alert("Please enter your Team Code first!");
+            alert("Please enter your Secret Code first!");
             return;
         }
 
@@ -59,7 +58,7 @@ const ScanPage: React.FC = () => {
         try {
             const team = await getTeamByCode(teamCode);
             if (!team) {
-                alert("Invalid Team Code");
+                alert("Invalid Secret Code");
                 setLoading(false);
                 return;
             }
@@ -73,14 +72,11 @@ const ScanPage: React.FC = () => {
             const targetIndex = team.currentRound;
             if (targetIndex < team.route.length) {
                 const currentRouteItem = team.route[targetIndex];
-                const locDoc = await getDoc(doc(db, 'locations', currentRouteItem.locationId));
-
-                if (locDoc.exists()) {
-                    setCurrentClueText((locDoc.data() as Location).clue);
-                } else {
-                    setCurrentClueText(currentRouteItem.riddle);
-                }
+                // Use the riddle directly from the route
+                setCurrentClueText(currentRouteItem.riddle);
                 setShowCurrentClue(true);
+            } else {
+                alert("No clue available for your current round.");
             }
         } catch (e) {
             console.error(e);
