@@ -8,6 +8,10 @@ import {
     EventState,
     getEventState,
     updateEventState,
+    subscribeToEventState,
+    subscribeToActivity,
+    ActivityLogItem,
+    sendNotification,
     db
 } from '../utils/firebase-helpers';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -16,8 +20,9 @@ import QRCode from 'react-qr-code';
 import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
+    // Existing State
     const [teams, setTeams] = useState<Team[]>([]);
-    const [activeTab, setActiveTab] = useState<'teams' | 'questions' | 'qr' | 'registrations'>('teams');
+    const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'questions' | 'notifications' | 'activity' | 'qr' | 'registrations'>('overview');
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
     const [editRoute, setEditRoute] = useState<RouteItem[]>([]);
     const [saving, setSaving] = useState(false);
@@ -26,15 +31,29 @@ const AdminDashboard: React.FC = () => {
     const [eventState, setEventState] = useState<EventState | null>(null);
     const [expandedTeamInQuestions, setExpandedTeamInQuestions] = useState<string | null>(null);
 
-    // Notifications Logic
-    const [notifications, setNotifications] = useState<{ id: number, message: string, type: 'success' | 'info' }[]>([]);
+    // New State for Activity & Broadcast
+    const [notifications, setNotifications] = useState<{ id: number, message: string, type: 'success' | 'info' | 'error' }[]>([]);
+    const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
+    const [broadcastMsg, setBroadcastMsg] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    // Refs
     const prevTeamsRef = React.useRef<Team[]>([]);
 
     useEffect(() => {
         const unsubTeams = subscribeToTeams(setTeams);
-        // Load event state
+        // Load event state (initial)
         getEventState().then(setEventState);
-        return () => unsubTeams();
+        // Subscribe to event state
+        const unsubEvent = subscribeToEventState(setEventState);
+        // Subscribe to activity log
+        const unsubActivity = subscribeToActivity(setActivityLog);
+
+        return () => {
+            unsubTeams();
+            unsubEvent();
+            unsubActivity();
+        };
     }, []);
 
     const handleInitTeams = async () => {
@@ -699,13 +718,13 @@ const AdminDashboard: React.FC = () => {
                         className={`btn ${activeTab === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('teams')}
                     >
-                        👥 Teams & Riddles
+                        👥 Teams
                     </button>
                     <button
                         className={`btn ${activeTab === 'questions' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('questions')}
                     >
-                        📜 Questions
+                        📜 Riddles
                     </button>
                     <button
                         className={`btn ${activeTab === 'registrations' ? 'btn-primary' : 'btn-secondary'}`}
@@ -714,57 +733,151 @@ const AdminDashboard: React.FC = () => {
                         📋 Registrations
                     </button>
                     <button
+                        className={`btn ${activeTab === 'notifications' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setActiveTab('notifications')}
+                    >
+                        📢 Broadcast
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'activity' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setActiveTab('activity')}
+                    >
+                        � Activity
+                    </button>
+                    <button
                         className={`btn ${activeTab === 'qr' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setActiveTab('qr')}
                     >
-                        📱 Generate QR
+                        📱 QR Codes
                     </button>
                     <Link to="/print-codes" className="btn btn-warning" target="_blank" style={{ marginRight: '5px' }}>
-                        🖨️ Print Riddles
+                        🖨️ Riddles
                     </Link>
                     <Link to="/print-stickers" className="btn btn-info" target="_blank" style={{ background: '#17a2b8', color: 'white', border: 'none' }}>
-                        🏷️ Print Stickers
+                        🏷️ Stickers
                     </Link>
                 </div>
             </div>
 
-            {activeTab === 'teams' && renderTeams()}
-            {activeTab === 'questions' && renderQuestions()}
-            {activeTab === 'registrations' && renderRegistrations()}
-            {activeTab === 'qr' && <QRGenerator />}
-            {/* Notification Toast Container */}
-            <div style={{
-                position: 'fixed',
-                bottom: '20px',
-                right: '20px',
-                zIndex: 9999,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-            }}>
-                {notifications.map(n => (
-                    <div key={n.id} className="card fade-in" style={{
-                        background: n.type === 'success' ? 'var(--success)' : 'var(--gold-dark)',
-                        color: 'white',
-                        padding: '1rem',
-                        minWidth: '300px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                        border: 'none'
-                    }}>
-                        <div className="flex justify-between items-start">
-                            <span>{n.message}</span>
+            <div className="tab-content mt-lg">
+                {activeTab === 'teams' && renderTeams()}
+                {activeTab === 'questions' && renderQuestions()}
+                {activeTab === 'registrations' && renderRegistrations()}
+                {activeTab === 'qr' && <QRGenerator />}
+
+                {/* NOTIFICATIONS TAB */}
+                {activeTab === 'notifications' && (
+                    <div className="container-sm">
+                        <div className="card">
+                            <h2 className="mb-md">📢 Broadcast Message</h2>
+                            <p className="mb-md text-muted">Send a message to ALL active players immediately.</p>
+
+                            <div className="form-group mb-md">
+                                <textarea
+                                    value={broadcastMsg}
+                                    onChange={(e) => setBroadcastMsg(e.target.value)}
+                                    placeholder="Type your message here..."
+                                    className="w-full p-sm border rounded"
+                                    style={{ minHeight: '100px', width: '100%', fontSize: '1.1rem' }}
+                                />
+                            </div>
+
                             <button
-                                onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))}
-                                style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', marginLeft: '10px' }}
+                                onClick={async () => {
+                                    if (!broadcastMsg.trim()) return;
+                                    setIsSending(true);
+                                    await sendNotification(broadcastMsg, 'alert');
+                                    addNotification(`📢 Broadcast sent: "${broadcastMsg}"`, 'success');
+                                    setBroadcastMsg('');
+                                    setIsSending(false);
+                                }}
+                                className="btn btn-primary w-full"
+                                disabled={isSending || !broadcastMsg.trim()}
                             >
-                                ✕
+                                {isSending ? 'Sending...' : '📢 Send Broadcast'}
                             </button>
                         </div>
-                    </div>
-                ))}
-            </div>
 
-            {renderEditModal()}
+                        <div className="mt-lg">
+                            <h3>Recent Alerts</h3>
+                            {notifications.length === 0 && <p className="text-muted">No recent alerts.</p>}
+                            <div className="flex flex-col gap-sm mt-sm">
+                                {notifications.map(n => (
+                                    <div key={n.id} className={`p-sm rounded border ${n.type === 'success' ? 'bg-green-50' : 'bg-gray-50'}`}>
+                                        {n.message} <span className="text-xs text-muted ml-sm">{new Date(n.id).toLocaleTimeString()}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ACTIVITY LOG TAB */}
+                {activeTab === 'activity' && (
+                    <div className="container-sm">
+                        <div className="card">
+                            <div className="flex justify-between items-center mb-md">
+                                <h2>📜 Activity Log</h2>
+                                <span className="badge badge-warning">Live</span>
+                            </div>
+
+                            <div className="activity-feed" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                                {activityLog.length === 0 ? (
+                                    <p className="text-muted text-center p-lg">No activity recorded yet.</p>
+                                ) : (
+                                    activityLog.map((log) => (
+                                        <div key={log.id} className="p-md mb-sm border-bottom flex gap-md items-start" style={{ background: 'rgba(255,255,255,0.4)', borderRadius: '8px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <div style={{ fontSize: '1.5rem' }}>
+                                                {log.type === 'success' ? '🏆' : log.type === 'warning' ? '⚠️' : 'ℹ️'}
+                                            </div>
+                                            <div>
+                                                <p className="mb-xs" style={{ fontSize: '1.05rem' }}>{log.text}</p>
+                                                <p className="text-xs text-muted">
+                                                    {new Date(log.timestamp).toLocaleTimeString()}
+                                                    {log.teamCode && <span className="ml-sm font-bold">• Team {log.teamCode}</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* Notification Toast Container */}
+                <div style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                }}>
+                    {notifications.map(n => (
+                        <div key={n.id} className="card fade-in" style={{
+                            background: n.type === 'success' ? 'var(--success)' : 'var(--gold-dark)',
+                            color: 'white',
+                            padding: '1rem',
+                            minWidth: '300px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                            border: 'none'
+                        }}>
+                            <div className="flex justify-between items-start">
+                                <span>{n.message}</span>
+                                <button
+                                    onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))}
+                                    style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', marginLeft: '10px' }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {renderEditModal()}
+            </div>
         </div>
     );
 };

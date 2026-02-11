@@ -8,7 +8,10 @@ import {
     setDoc,
     updateDoc,
     arrayUnion,
-    onSnapshot
+    onSnapshot,
+    addDoc,
+    orderBy,
+    limit
 } from 'firebase/firestore';
 // @ts-ignore
 import { sampleTeams } from '../../sample-data';
@@ -203,6 +206,78 @@ export function subscribeToEventState(callback: (state: EventState | null) => vo
         } else {
             callback(null);
         }
+    });
+}
+
+// --- Notifications & Activity Log ---
+
+export interface NotificationMsg {
+    id?: string;
+    message: string;
+    timestamp: number;
+    type: 'info' | 'alert' | 'success';
+    active: boolean; // stored to show only recent/active (optional logic)
+}
+
+export interface ActivityLogItem {
+    id?: string;
+    text: string;
+    timestamp: number;
+    type: 'success' | 'info' | 'warning';
+    teamCode?: string; // Optional: link to a team
+}
+
+// Send a broadcast notification
+export async function sendNotification(message: string, type: 'info' | 'alert' | 'success' = 'info') {
+    try {
+        await addDoc(collection(db, 'notifications'), {
+            message,
+            timestamp: Date.now(),
+            type,
+            active: true
+        });
+    } catch (error) {
+        console.error('Error sending notification:', error);
+    }
+}
+
+// Subscribe to latest notifications (e.g. last 1, or recent)
+export function subscribeToNotifications(callback: (msgs: NotificationMsg[]) => void): () => void {
+    const q = query(
+        collection(db, 'notifications'),
+        orderBy('timestamp', 'desc'),
+        limit(1) // Just get the latest one for now to trigger alerts
+    );
+    return onSnapshot(q, (snapshot) => {
+        const msgs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as NotificationMsg));
+        callback(msgs);
+    });
+}
+
+// Log an activity (internal system use)
+export async function logActivity(text: string, type: 'success' | 'info' | 'warning' = 'info', teamCode?: string) {
+    try {
+        await addDoc(collection(db, 'activity_log'), {
+            text,
+            timestamp: Date.now(),
+            type,
+            teamCode: teamCode || null
+        });
+    } catch (error) {
+        console.error('Error logging activity:', error);
+    }
+}
+
+// Subscribe to activity log (for Admin Dashboard)
+export function subscribeToActivity(callback: (logs: ActivityLogItem[]) => void): () => void {
+    const q = query(
+        collection(db, 'activity_log'),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+    );
+    return onSnapshot(q, (snapshot) => {
+        const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLogItem));
+        callback(logs);
     });
 }
 
