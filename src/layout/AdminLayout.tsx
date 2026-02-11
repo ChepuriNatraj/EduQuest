@@ -6,7 +6,7 @@ const AdminLayout: React.FC = () => {
 
     if (!isAuthenticated) {
         const pin = prompt('🔐 Enter Admin PIN:');
-        if (pin === '1234') {
+        if (pin === '325698') {
             sessionStorage.setItem('admin_auth', 'true');
         } else {
             alert('❌ Access Denied - Invalid PIN');
