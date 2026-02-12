@@ -179,7 +179,7 @@ const ScanPage: React.FC = () => {
     };
 
     return (
-        <div className="scan-page fade-in">
+        <div className="page fade-in">
             {/* Admin Notification Modal/Toast */}
             {adminNotification && (
                 <div className="modal-overlay" style={{ zIndex: 10000 }}>
@@ -209,12 +209,12 @@ const ScanPage: React.FC = () => {
             <div className="container" style={{ maxWidth: '600px' }}>
                 <header className="text-center mb-lg">
                     <img
-                        src="/assets/width_193.png"
-                        alt="EduMoon"
+                        src="/assets/width_500.png"
+                        alt="EduMoon Student Clubs"
                         className="brand-logo"
-                        style={{ maxWidth: '120px' }}
+                        style={{ maxWidth: '180px', marginBottom: '1rem' }}
                     />
-                    <h1 className="mt-sm site-title" style={{ fontSize: '2rem' }}>Treasure Hunt</h1>
+                    <h1 className="mt-sm site-title" style={{ fontSize: '2.5rem', letterSpacing: '0.1em' }}>EDUQUEST</h1>
                     <p className="text-muted text-sm">Find the locations, solve the riddles!</p>
                 </header>
 

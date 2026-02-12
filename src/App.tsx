@@ -29,26 +29,16 @@ function HomePage() {
             <div className="container-sm">
                 <div className="card fade-in" style={{ textAlign: 'center' }}>
                     <div className="brand-header">
-                        <div className="brand-logos">
+                        <div className="brand-logos" style={{ justifyContent: 'center' }}>
                             <img
-                                className="brand-logo brand-logo--md brand-logo--soft"
-                                src="/assets/width_193.png"
-                                alt="EduMoon"
-                            />
-                            <img
-                                className="brand-logo brand-logo--xl"
-                                src="/assets/width_800.png"
-                                alt="EduMoon Student Clubs"
-                            />
-                            <img
-                                className="brand-logo brand-logo--lg brand-logo--soft"
+                                className="brand-logo"
                                 src="/assets/width_500.png"
-                                alt="EduMoon"
+                                alt="EduMoon Student Clubs"
+                                style={{ maxWidth: '250px' }}
                             />
                         </div>
-
-                        <h1 className="gradient-text mb-sm">EduMoon Treasure Hunt</h1>
-                        <p className="brand-subtitle mb-lg">Welcome to the treasure hunt platform</p>
+                        <h1 className="gradient-text mb-sm">EDUQUEST</h1>
+                        <p className="brand-subtitle">The Ultimate Student Adventure</p>
                     </div>
 
                     <div className="stack gap-md mb-lg">

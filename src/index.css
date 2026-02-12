@@ -83,6 +83,9 @@ body {
         radial-gradient(circle at 20% 30%, var(--parchment-light) 0%, var(--parchment-base) 50%, var(--parchment-dark) 100%);
     color: var(--brown-text);
     min-height: 100vh;
+    /* Ensure scrolling is allowed */
+    overflow-y: auto;
+    overflow-x: hidden;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -90,14 +93,28 @@ body {
 
 #root {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ==================== PAGE SHELL ==================== */
 
 .page {
+    flex: 1;
+    /* Allow growing to fill space */
+    width: 100%;
     min-height: 100vh;
-    padding-top: var(--spacing-2xl);
-    padding-bottom: var(--spacing-2xl);
+    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    /* Prevent horizontal overflow causing scrollbars */
+    overflow-x: hidden;
+}
+
+@media (min-width: 768px) {
+    .page {
+        padding-top: var(--spacing-2xl);
+        padding-bottom: var(--spacing-2xl);
+    }
 }
 
 .page-center {
@@ -372,8 +389,8 @@ body {
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
 }
 
 .container-sm {
@@ -381,8 +398,17 @@ body {
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+
+    .container,
+    .container-sm {
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
+    }
 }
 
 /* Flexbox Utilities */

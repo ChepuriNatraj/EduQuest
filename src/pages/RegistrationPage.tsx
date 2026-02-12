@@ -99,26 +99,17 @@ const RegistrationPage: React.FC = () => {
             <div className="container-sm">
                 <div className="card fade-in">
                     <div className="brand-header">
-                        <div className="brand-logos">
+                        <div className="brand-logos" style={{ justifyContent: 'center' }}>
                             <img
-                                className="brand-logo brand-logo--sm brand-logo--soft"
-                                src="/assets/width_193.png"
-                                alt="EduMoon"
-                            />
-                            <img
-                                className="brand-logo brand-logo--lg"
-                                src="/assets/width_800.png"
-                                alt="EduMoon Student Clubs"
-                            />
-                            <img
-                                className="brand-logo brand-logo--md brand-logo--soft"
+                                className="brand-logo"
                                 src="/assets/width_500.png"
-                                alt="EduMoon"
+                                alt="EduMoon Student Clubs"
+                                style={{ maxWidth: '200px' }}
                             />
                         </div>
 
-                        <h1 className="gradient-text mb-sm">Team Registration</h1>
-                        <p className="brand-subtitle">Complete your registration to participate</p>
+                        <h1 className="gradient-text mb-sm">EDUQUEST Registration</h1>
+                        <p className="brand-subtitle">Complete your team details to participate</p>
                     </div>
 
                     {teamCode && (

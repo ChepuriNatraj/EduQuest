@@ -29,19 +29,10 @@ const AdminLayout: React.FC = () => {
                         {/* Mini Logo Trio in Header */}
                         <div className="brand-logos" style={{ marginBottom: 0, justifyContent: 'flex-start', gap: 'var(--spacing-sm)' }}>
                             <img
-                                src="/assets/width_193.png"
-                                alt="EduMoon"
-                                className="brand-logo brand-logo--xs"
-                            />
-                            <img
-                                src="/assets/width_800.png"
-                                alt="Admin"
-                                className="brand-logo brand-logo--md"
-                            />
-                            <img
                                 src="/assets/width_500.png"
-                                alt="EduMoon"
-                                className="brand-logo brand-logo--sm"
+                                alt="EduMoon Student Clubs"
+                                className="brand-logo"
+                                style={{ maxWidth: '150px' }}
                             />
                         </div>
                         <button

@@ -225,7 +225,7 @@ const AdminDashboard: React.FC = () => {
         <div className="teams-view">
             <div className="flex justify-between items-center mb-lg">
                 <div>
-                    <h2 className="mb-xs">Team Management</h2>
+                    <h1 className="gradient-text">EDUQUEST Admin</h1>
                     <p className="text-sm text-muted">Configure riddles and routes for each team</p>
                 </div>
                 <div className="flex gap-sm">
